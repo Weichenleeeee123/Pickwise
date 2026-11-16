@@ -125,3 +125,13 @@ curl -fsS https://pickwise.icu/api/config
 - 首次文件校验按 Git blob 计算，与实际归档换行字节不同，自动回退旧版；改按实际部署 tar 包中的文件计算校验值后切换成功。tar 包 SHA256 为 `74f37bcc7cbcba55fbb20781ca48cf76c33cc6a13ed9f589aa639de6286bbd97`。
 - 应用服务 active，生产提供的 demo-pitch.js 与部署包一致。环境配置、线上会话、旧版发布和公开 /materials/ 保留。
 - 发布记录：`tmp/publish-expo-20261116T044357Z/release.json` 与远端 `/var/lib/pickwise/deploy-20261116T044357Z.json`；线上截图：`output/qa/2026-11-16-expo-production.png`。
+
+## 同日更新：0.3.1 八段路演、固定浮层与讲解开关
+
+- 公开实现提交：`3ef5ef285dbc80cb0f1fc44ea7badc9ba76d100d`；本地实现提交：`ce046faac71c0e4f2ef7528de71f5ddcebbbe1c0`。版本 `0.3.1`。
+- 当前线上版本：`/opt/pickwise/releases/20261116T050514Z`。上一版本 `20261116T044357Z` 和原指针 `/opt/pickwise/current.before-20261116T050514Z` 保留，可回退；未删除文件、旧版本、环境配置或会话。
+- 评委入口：https://pickwise.icu/?demo=1 。产品介绍依八页 PPT 主线展开，体验入口仅在头尾；同一置物架模拟案例连续展示两项工作成果和一次独立 CVR 教学互动。
+- 导览以固定浮层保持可见，可折叠；顶部演示专用“自助讲解”开关关闭后恢复普通演示页，偏好随浏览器保存。实时模式不显示 pitch、导览或该开关。
+- 发布 tar 包包含 174 个文件，SHA256 为 `77dce014092d0abe4da8ecff649a4500eb4960a774ad6ac1836216152b85ddca`；归档与逐文件校验均通过。服务 active，生产提供的 `demo-pitch.js`、`demo-guide.js`、`main.js` 和 `styles.css` 与归档字节一致，演示入口和公开材料页可访问。
+- 按用户要求未重跑本地测试、浏览器体验或真实付费调用。提交触发的 GitHub Actions 自动检查 `43808020931` 成功；未额外触发重复检查。
+- 发布资料保存在 `tmp/publish-expo-20261116T050514Z/`，远端结果保存在 `/var/lib/pickwise/deploy-20261116T050514Z.json`。本次使用既有 `claude.pem` 身份连接服务器，私钥与配置未进入归档。
