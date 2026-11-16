@@ -3,7 +3,7 @@ import { PAGES, renderAppShell, renderWorkspace } from './workspace.js';
 import { esc } from './common.js';
 import { COACH_QUESTIONS } from './coach.js';
 import { mountTermHelp } from './term-help.js';
-import { mountOfficeScene, createOfficeMotion } from './office-scene.js';
+import { mountOfficeScene, createOfficeMotion, simulationAt, nextSimulationTime, simulationStepTime, SIMULATION_DURATION } from './office-scene.js';
 import { createDemoTour, demoTourStep, DEMO_TOUR_STEPS } from './demo-guide.js';
 import { PITCH_QUESTIONS } from './demo-pitch.js';
 
@@ -225,7 +225,9 @@ function render() {
     image.addEventListener('error', () => image.parentElement?.classList.add('asset-missing'), { once: true });
     image.addEventListener('load', () => image.parentElement?.classList.add('asset-ready'), { once: true });
   });
-  disposeOffice = mountOfficeScene(app, { view: ui.view, playback: officePlayback, motion: officeMotion });
+  disposeOffice = mountOfficeScene(app, { view: ui.view, playback: officePlayback, motion: officeMotion, onPhaseChange: () => {
+    if (!app.querySelector('[data-sim-seek]:active')) render();
+  } });
   if (!officePlayback) reportViewedIfNeeded();
   restoreInputs({ ...(ui.pageInputs[ui.page] ?? {}), ...saved });
   const chatLog = app.querySelector?.('.coach-messages');
@@ -360,7 +362,13 @@ app.addEventListener('click', async (event) => {
   const target = event.target.closest('[data-action], [data-open], [data-toggle], [data-tab], [data-page], [data-step-select]');
   if (!target || target.disabled) return;
   if (target.dataset.page) { navigate(target.dataset.page); return; }
-  if (target.dataset.stepSelect) { ui.activeStep = target.dataset.stepSelect; ui.focus = ui.activeStep; ui.open = new Set([ui.activeStep]); render(); app.querySelector('.room-step-detail')?.scrollIntoView({ block: 'start' }); return; }
+  if (target.dataset.stepSelect) {
+    ui.activeStep = target.dataset.stepSelect; ui.focus = ui.activeStep; ui.open = new Set([ui.activeStep]);
+    if (ui.demo && officePlayback && simulationAt(officePlayback.elapsed).steps.find(step => step.id === ui.activeStep)?.status === 'pending') {
+      officePlayback.elapsed = simulationStepTime(ui.activeStep);
+    }
+    render(); app.querySelector('.room-step-detail')?.scrollIntoView({ block: 'start' }); return;
+  }
   if (target.dataset.open) { if (ui.demo) await enterDemo({ replay: true }); else openSession(target.dataset.open); return; }
   if (target.dataset.toggle) { const id = target.dataset.toggle; ui.open.has(id) ? ui.open.delete(id) : ui.open.add(id); render(); return; }
   if (target.dataset.tab) { ui.tab = target.dataset.tab; render(); loadText(ui.tab); return; }
@@ -370,7 +378,6 @@ app.addEventListener('click', async (event) => {
     const wasPitch=ui.demoTour?.mode==='welcome';
     ui.demoAssistanceEnabled=ui.demoAssistanceEnabled===false;
     store.set('pickwise.demo-assistance',ui.demoAssistanceEnabled?'on':'off');
-    if(!ui.demoAssistanceEnabled)officePlayback=null;
     render();
     if(wasPitch)window.scrollTo(0,0);
     return;
@@ -402,8 +409,13 @@ app.addEventListener('click', async (event) => {
   if (action === 'exit-demo') { await exitDemo(); return; }
   if (action === 'history') { await loadList(); ui.historyOpen = !ui.historyOpen; render(); return; }
   if (action === 'collapse-nav') { ui.collapsed = !ui.collapsed; store.set('pickwise.nav-collapsed', ui.collapsed ? '1' : '0'); render(); return; }
-  if (action === 'office-preview' || action === 'office-replay') { if (!ui.demo) await enterDemo(); if(ui.demoTour?.mode==='welcome')ui.demoTour.mode='free'; clearTimeout(ui.pollTimer); ui.page = 'room'; officePlayback = { elapsed: 0, paused: false, speed: 1 }; syncLocation(); render(); return; }
+  if (action === 'office-preview' || action === 'office-replay') { if (!ui.demo) await enterDemo(); if(ui.demoTour?.mode==='welcome')ui.demoTour.mode='free'; clearTimeout(ui.pollTimer); ui.page = 'room'; ui.focus = null; officePlayback = { elapsed: 0, paused: false, speed: 1 }; syncLocation(); render(); return; }
   if (action === 'office-pause' && officePlayback) { officePlayback.paused = !officePlayback.paused; return; }
+  if (action === 'office-next' && officePlayback) {
+    officePlayback.elapsed = nextSimulationTime(officePlayback.elapsed);
+    if (officePlayback.elapsed >= SIMULATION_DURATION) officePlayback.paused = true;
+    ui.focus = null; render(); return;
+  }
   if (action === 'office-speed' && officePlayback) { officePlayback.speed = officePlayback.speed === 1 ? 2 : officePlayback.speed === 2 ? .5 : 1; target.textContent = `${officePlayback.speed}×`; return; }
   if (action === 'office-exit') { officePlayback = null; syncLocation(); render(); schedulePoll(); return; }
   if (action === 'home') { navigate('home'); return; }
@@ -482,6 +494,9 @@ app.addEventListener('input', (event) => {
 });
 
 app.addEventListener('change', async (event) => {
+  if (officePlayback && event.target.matches?.('[data-sim-seek]')) {
+    render(); app.querySelector('[data-sim-seek]')?.focus({ preventScroll: true }); return;
+  }
   if (event.target.id === 'c-cur') { ui.currencyDraft = event.target.value; render(); return; }
   if (event.target.name === 'jc') { ui.draft.choice = event.target.value; return; }
   if (ui.demo && event.target.type === 'file') { toast('请切换到实时分析导入数据'); return; }

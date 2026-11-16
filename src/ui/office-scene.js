@@ -34,6 +34,14 @@ export function simulationAt(elapsed) {
     events: PHASES.slice(0, index + 1).map((item, seq) => ({ seq: seq + 1, type: 'simulation', label: item.title, message: item.text })) };
 }
 
+export function nextSimulationTime(elapsed) {
+  return PHASES.find(phase => phase.at > simulationAt(elapsed).elapsed)?.at ?? SIMULATION_DURATION;
+}
+
+export function simulationStepTime(id) {
+  return PHASES.find(phase => phase.active.includes(id))?.at ?? 0;
+}
+
 export function createOfficeMotion() { return newMotion(); }
 
 export function advanceOfficeMotion(motion, view, delta, reducedMotion = false) {
@@ -59,8 +67,8 @@ export function sceneActors(view, motion = null) {
   return motionActors(motion ?? newMotion(), view, OFFICE_LAYOUT, motion?.reducedMotion ?? false);
 }
 
-// Updates only the scene and its demonstration controls, never stored reports.
-export function mountOfficeScene(root, { view, playback, motion = createOfficeMotion() } = {}) {
+// Keep the scene and workspace on the same clock without changing stored reports.
+export function mountOfficeScene(root, { view, playback, motion = createOfficeMotion(), onPhaseChange } = {}) {
   const scene = root.querySelector('[data-office-scene]');
   if (!scene) return () => {};
   for (const actor of scene.querySelectorAll('[data-standing-asset]')) {
@@ -71,11 +79,12 @@ export function mountOfficeScene(root, { view, playback, motion = createOfficeMo
   }
   let raf = 0; let last = performance.now();
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let previousPhase = '';
+  let previousPhase = playback ? simulationAt(playback.elapsed).phase : '';
   const tick = (time) => {
     const delta = document.hidden ? 0 : Math.min(100, time - last); last = time;
     if (playback && !playback.paused) playback.elapsed = Math.min(SIMULATION_DURATION, playback.elapsed + delta * (playback.speed || 1));
     const current = playback ? simulationAt(playback.elapsed) : view;
+    const phaseChanged = Boolean(playback && current.phase !== previousPhase);
     const actors = playback ? sceneActors(current, { reducedMotion }) : advanceOfficeMotion(motion, current, delta, reducedMotion);
     const people = scene.querySelector('.office-people');
     for (const actor of actors) {
@@ -124,6 +133,7 @@ export function mountOfficeScene(root, { view, playback, motion = createOfficeMo
       scene.closest('.office-stage')?.setAttribute('data-discussion', current.steps.some(step => step.id === 'summary' && step.status === 'running') ? 'discussion' : 'quiet');
     }
     raf = requestAnimationFrame(tick);
+    if (phaseChanged) onPhaseChange?.(current);
   };
   raf = requestAnimationFrame(tick);
   return () => cancelAnimationFrame(raf);
