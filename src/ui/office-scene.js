@@ -14,13 +14,13 @@ export const OFFICE_LAYOUT = {
 };
 export const SIMULATION_DURATION = 42000;
 const PHASES = [
-  { at: 0, title: '拆解选品任务', text: '模拟：先确认商品与市场，避免把不同规格当成同一商品。', active: ['identify'] },
-  { at: 6000, title: '并行查看市场', text: '模拟：需求与竞品专员在电脑上核对趋势、价格带与可比规格。', active: ['demand', 'competition'] },
-  { at: 12000, title: '交叉核对数据', text: '模拟：需求、竞品、利润专员并行工作，区分估算与真实经营输入。', active: ['demand', 'competition', 'profit'] },
-  { at: 20000, title: '检查利润与风险', text: '模拟：费用由程序计算，官方风险记录由风险专员核对。', active: ['profit', 'risk'] },
-  { at: 27000, title: '圆桌汇总证据', text: '模拟：团队到中央圆桌对齐证据与分歧；动画不代表新增真实模型对话。', active: ['summary'] },
-  { at: 36000, title: '完成初筛与教学', text: '模拟：六步分析与风险核验流程已展示完毕，成员恢复自由走动；虚构案例进入小批量验证计划。', active: [] },
-  { at: SIMULATION_DURATION, title: '演示完成', text: '模拟演示已结束，可重播。全过程没有请求模型或商品数据源。', active: [] }
+  { at: 0, title: '先确认：到底研究哪一款？', text: '模拟案例：锁定双层银色厨房置物架。三层变体不混用，后面的售价、销量与成本才有同一个对象。', active: ['identify'] },
+  { at: 6000, title: '有人买，和我能做，是两个问题', text: '模拟案例：需求专员读取六个月历史；竞品专员核对三个独立双层架。搜索热度不等于订单，同父体也不算新对手。', active: ['demand', 'competition'] },
+  { at: 12000, title: '把商品信号接到经营条件上', text: '模拟案例：需求从 340 增至 438 件，竞品中位价 $29.90。利润专员还要算物流、平台费、退货与广告，不能只用售价减采购。', active: ['demand', 'competition', 'profit'] },
+  { at: 20000, title: '算得出利润，也要看资金与风险', text: '模拟案例：广告后贡献 $4.70，启动现金 $2,966。风险角色检查预制材料；这里是虚构核验流程，不是实际商品的认证。', active: ['profit', 'risk'] },
+  { at: 27000, title: '把依据整理成能执行的结论', text: '模拟案例：首批 120 件试销，围绕层高与护角包装打样。圆桌动画展示汇总过程，具体数据、边界与动作都在报告里。', active: ['summary'] },
+  { at: 36000, title: '完成研究，也留下可以复用的方法', text: '模拟案例：下一站看结论，再动手把转化率减半。你会看到 $4.70 为什么会变成 $0.70，理解条件比记住答案更重要。', active: [] },
+  { at: SIMULATION_DURATION, title: '协作回放完成', text: '模拟回放已结束。可以重播，或点导览中的“去看分析结论”。全程未请求模型或外部数据源。', active: [] }
 ];
 
 export function simulationAt(elapsed) {

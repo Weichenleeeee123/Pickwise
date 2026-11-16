@@ -1,5 +1,7 @@
 import { DEMO_CASE } from './demo-data.js';
 import { calculatePurchaseExposure, calculateUnitEconomics } from '../domain.js';
+import { demoPractice, demoLearningText } from './demo-exercises.js';
+import { PITCH_ANSWERS } from './demo-pitch.js';
 function newCase() { return structuredClone(DEMO_CASE.view); }
 let current = newCase();
 let texts = structuredClone(DEMO_CASE.texts);
@@ -11,14 +13,26 @@ export const demoProvider = {
   create: async () => { throw new Error('预制演示仅使用案例商品；请切换到实时分析输入其他商品。'); },
   demo: async () => resetDemo(),
   get: async () => snapshot(),
-  exportText: async (id,kind) => '# Pickwise 产品演示 · 完整虚构案例\n\n场景日期：2026-11-14。商品、销量、评论、报价及核验材料均为模拟数据，仅用于演示。\n\n' + (current.analysis?.stale ? '> 经营条件已在本次演示调整；下方为原始案例报告，最新试算请查看“证据与测算”。\n\n' : '') + (texts[kind] ?? '该成果尚未生成。'),
+  exportText: async (id,kind) => '# Pickwise 产品演示 · 完整虚构案例\n\n场景日期：2026-11-14。商品、销量、评论、报价及核验材料均为模拟数据，仅用于演示。\n\n' + (current.analysis?.stale ? '> 经营条件已在本次演示调整；下方为原始案例报告，最新试算请查看“证据与测算”。\n\n' : '') + (kind==='learning'?demoLearningText(current):texts[kind] ?? '该成果尚未生成。'),
   async post(id, action, body={}) {
+    if (action === 'demo/scenario') {
+      if (!['baseline','low-cvr'].includes(body.scenario)) throw new Error('请选择预制的演示情景。');
+      const baseline=newCase();
+      for(const key of ['constraints','econ','funding','scenarios','analysis','cardsStale','viz']) current[key]=baseline[key];
+      for(const [node,record] of Object.entries(current.practice)) if(node==='N3'&&record.question) record.stale=body.scenario!=='baseline';
+      if(body.scenario==='low-cvr') return this.post(id,'constraints',{values:{cvr:.06}});
+      return snapshot();
+    }
+    const practice=action.match(/^practice\/(N[23])\/(start|hint|answer|skip)$/);
+    if(practice) {demoPractice(current,practice[1],practice[2],body);return snapshot();}
     if (action === 'coach') {
       const question = String(body.question ?? '').trim(), selectedText = String(body.selectedText ?? '').trim();
       if (!question || question.length > 500 || selectedText.length > 1200) throw new Error('问题最多 500 字，引用最多 1200 字。');
-      const topic = /数量|起订|首批|MOQ|120/i.test(question) ? 'quantity' : /风险|认证|授权|合规|召回/.test(question) ? 'risk' : /为什么|为何/.test(question) ? 'verdict' : /利润|费用|成本|转化|CPC|CVR/i.test(question) ? 'cost' : /先做|下一步|首单|补货/.test(question) ? 'next' : /原始|数据|证据|来源/.test(question) ? 'evidence' : 'verdict';
-      const answer = (selectedText ? '你引用的内容已保留。结合这份模拟案例，\n\n' : '') + DEMO_CASE.coachAnswers[topic] + (current.analysis.stale ? `\n\n你已调整本地输入：当前试算的广告后贡献为 ${current.econ.postAdContribution ?? '未知'} USD；上面的文字解释保留原案例参数。` : '');
-      current.coach = [...(current.coach ?? []), {question,selectedText,answer,simulated:true,analysisVersion:current.analysis.version,at:new Date().toISOString()}].slice(-12);
+      const marketFees=/FBA|Amazon|亚马逊|关税|平台|配送|头程|履约/i.test(question);
+      const productPricing=!marketFees&&(/收费|商业模式|付费|定价方案/.test(question)||(/验证到什么/.test(question)&&/Pickwise|产品/i.test(question)));
+      const topic = productPricing ? 'pricing' : marketFees ? 'cost' : /普通聊天|区别|有什么不同|工作闭环和内嵌教学/.test(question) ? 'difference' : /介绍.*Pickwise|产品价值|为谁|解决什么问题/i.test(question) ? 'product' : /数量|起订|首批|MOQ|120/i.test(question) ? 'quantity' : /风险|认证|授权|合规|召回/.test(question) ? 'risk' : /为什么|为何/.test(question) ? 'verdict' : /利润|费用|成本|转化|CPC|CVR/i.test(question) ? 'cost' : /先做|下一步|首单|补货/.test(question) ? 'next' : /原始|数据|证据|来源/.test(question) ? 'evidence' : 'verdict';
+      const answer = (PITCH_ANSWERS[topic] ?? ((selectedText ? '你引用的内容已保留。结合这份模拟案例，\n\n' : '') + DEMO_CASE.coachAnswers[topic])) + (current.analysis.stale && !PITCH_ANSWERS[topic] ? `\n\n你已调整本地输入：当前试算的广告后贡献为 ${current.econ.postAdContribution ?? '未知'} USD；上面的文字解释保留原案例参数。` : '');
+      current.coach = [...(current.coach ?? []), {question,selectedText,answer,simulated:true,contextKind:PITCH_ANSWERS[topic]?'product':'research',analysisVersion:PITCH_ANSWERS[topic]?null:current.analysis.version,at:new Date().toISOString()}].slice(-12);
       return snapshot();
     }
     if (action === 'viewed-result') return snapshot();
@@ -53,6 +67,7 @@ export const demoProvider = {
       current.econ = econ; current.funding = funding;
       current.scenarios = { rows: econ.status === 'complete' ? definitions.map(([label,overrides]) => { const scenario = {...effective,...overrides}; return {label,values:scenario,result:calculateUnitEconomics(scenario)}; }) : [], note:'本地程序压力情景，不是预测；文字报告保留原案例。' };
       current.analysis = { ...current.analysis, stale:true }; current.cardsStale = true;
+      if(current.practice.N3?.question)current.practice.N3.stale=true;
       const bars = [['售价',effective.price,'in'],['采购',effective.goodsCost,'out'],['运输与履约',effective.logisticsCost,'out'],['平台费',effective.platformCost,'out'],['退货预留',effective.returnsCost,'out'],['其他变动成本',effective.otherCost,'out'],['广告前贡献',econ.preAdContribution,'subtotal'],['广告获客 CAC',econ.acquisitionCost,'out'],['广告后贡献',econ.postAdContribution,'total']];
       current.viz = { ...current.viz, profit: { type:'waterfall', currency:'USD', nature:'estimate', complete:econ.status === 'complete', note:'本地模拟试算；文字报告保留原案例。', bars:econ.status === 'complete' ? bars.map(([label,value,kind]) => ({label,value,kind,unknown:false})) : [] } };
       return snapshot();

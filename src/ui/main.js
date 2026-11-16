@@ -4,6 +4,8 @@ import { esc } from './common.js';
 import { COACH_QUESTIONS } from './coach.js';
 import { mountTermHelp } from './term-help.js';
 import { mountOfficeScene, createOfficeMotion } from './office-scene.js';
+import { createDemoTour, demoTourStep, DEMO_TOUR_STEPS } from './demo-guide.js';
+import { PITCH_QUESTIONS } from './demo-pitch.js';
 
 const app = document.querySelector('#app');
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* 无痕模式下忽略 */ } } };
@@ -50,6 +52,7 @@ async function sendCoach(question = coachState().question) {
     if (seq !== ui.seq || id !== ui.view?.id || state !== ui.coachState) return;
     // Chat responses cannot overwrite concurrent cost edits or a refreshed report.
     ui.view.coach = next.coach;
+    if(ui.demo&&ui.demoTour)ui.demoTour.coach=true;
     ui.coachRevision++;
     state.question = ''; state.quote = ''; state.pending = false;
     render(); scroll(); document.getElementById('coach-question')?.focus({preventScroll:true});
@@ -68,6 +71,61 @@ let disposeOffice = () => {};
 let officeMotion = createOfficeMotion();
 let officeMotionKey = null;
 let printDisclosures = [];
+async function applyDemoScenario(scenario) {
+  if (!ui.demo || !ui.view || ui.busy) return false;
+  const seq=ui.seq, id=ui.view.id;
+  const next=await api.post(id,'demo/scenario',{scenario});
+  if(seq!==ui.seq || !ui.demo || ui.view?.id!==id) return false;
+  ui.view=next;ui.pageInputs.evidence={};ui.currencyDraft=null;renderedContext=null;
+  if(scenario==='low-cvr' && ui.demoTour)ui.demoTour.scenario=true;
+  render();return true;
+}
+async function visitDemoTour(index) {
+  if(!ui.demo)return;
+  if(!ui.demoTour)ui.demoTour=createDemoTour();
+  const previous=demoTourStep(ui.demoTour);
+  const nextIndex=Math.min(DEMO_TOUR_STEPS.length-1,Math.max(0,Number(index)||0));
+  if(previous.id==='economics' && nextIndex>ui.demoTour.index)await applyDemoScenario('baseline');
+  Object.assign(ui.demoTour,{mode:'active',index:nextIndex});
+  coachState().open=false;
+  navigate(DEMO_TOUR_STEPS[nextIndex].page);
+}
+async function handleDemoTour(action,target) {
+  if(!ui.demo || !action?.startsWith('demo-tour-'))return false;
+  if(!ui.demoTour)ui.demoTour=createDemoTour();
+  const state=ui.demoTour;
+  if(action==='demo-tour-start') {await visitDemoTour(0);officePlayback={elapsed:0,paused:false,speed:1};render();app.querySelector('.analysis-team')?.scrollIntoView({block:'start'});}
+  else if(action==='demo-tour-restart')await enterDemo();
+  else if(action==='demo-tour-free'){state.mode='free';officePlayback=null;render();}
+  else if(action==='demo-tour-resume')await visitDemoTour(state.index);
+  else if(action==='demo-tour-step')await visitDemoTour(target.dataset.tourIndex);
+  else if(action==='demo-tour-back')await visitDemoTour(state.index-1);
+  else if(action==='demo-tour-next'){
+    if(state.index===DEMO_TOUR_STEPS.length-1){state.mode='complete';officePlayback=null;coachState().open=false;render();window.scrollTo(0,0);}
+    else await visitDemoTour(state.index+1);
+  }
+  else if(action==='demo-tour-finish'){state.mode='complete';coachState().open=false;render();window.scrollTo(0,0);}
+  else if(action==='demo-tour-replay'){officePlayback={elapsed:0,paused:false,speed:1};render();}
+  else if(action==='demo-tour-evidence'){
+    state.evidence=true;ui.details['report:dimension-demand']=true;ui.details['report:raw-demand-H1']=true;render();
+    app.querySelector('[data-disclosure-key="raw-demand-H1"]')?.scrollIntoView({block:'start'});
+  }
+  else if(action==='demo-tour-scenario')await applyDemoScenario('low-cvr');
+  else if(action==='demo-tour-baseline')await applyDemoScenario('baseline');
+  else if(action==='demo-tour-coach'){
+    coachState().quote=ui.view.analysis.result.dimensions.find(d=>d.key==='profit').judgment;
+    await sendCoach('利润最怕什么变化？请解释 CVR 减半后的成本和贡献。');
+  }
+  else if(action==='demo-tour-practice'){
+    await mutate('practice/N3/start',{});
+    app.querySelector('input[name="p-N3"]')?.closest('.practice')?.scrollIntoView({block:'center'});
+  }
+  else if(action==='demo-tour-download'){
+    const report=await api.exportText(ui.view.id,'analysis');
+    const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([report],{type:'text/markdown;charset=utf-8'}));link.download='Pickwise-demo-case.md';link.click();URL.revokeObjectURL(link.href);
+  }
+  return true;
+}
 let termHelp = { close() {} };
 window.addEventListener?.('beforeprint', () => {
   printDisclosures = [...app.querySelectorAll('.report-dimensions details, .report-actions details')].map(element => [element, element.open]);
@@ -143,10 +201,10 @@ function render() {
   app.querySelectorAll('details').forEach((element, index) => {
     const key = ui.page + ':' + (element.dataset.disclosureKey ?? ((element.closest('[data-step]')?.dataset.step ?? '') + ':' + index));
     if (Object.hasOwn(ui.details, key)) element.open = ui.details[key];
-    element.addEventListener('toggle', () => { if (element.isConnected) ui.details[key] = element.open; });
+    element.addEventListener('toggle', () => { if (element.isConnected) {ui.details[key] = element.open;if(ui.demo&&element.open&&element.dataset.disclosureKey?.startsWith('raw-')&&ui.demoTour)ui.demoTour.evidence=true;} });
   });
   if (ui.demo) {
-    app.querySelectorAll('[data-action="rerun"], [data-action="retry"], [data-action="reanalyze"], [data-action="gen-learning"], [data-action="practice-start"], [data-action="practice-hint"], [data-action="practice-answer"], [data-action="transfer-start"], [data-action="transfer-retry"], [data-action="transfer-score"]').forEach(button => { button.disabled = true; button.title = '预制演示不调用模型，请切换到实时分析使用此功能'; });
+    app.querySelectorAll('[data-action="rerun"], [data-action="retry"], [data-action="reanalyze"], [data-action="gen-learning"], [data-action="transfer-start"], [data-action="transfer-retry"], [data-action="transfer-score"]').forEach(button => { button.disabled = true; button.title = '预制演示不调用模型，请切换到实时分析使用此功能'; });
     app.querySelectorAll('input[type="file"]').forEach(input => { input.disabled = true; input.title = '请在实时分析中导入数据'; });
     app.querySelectorAll('.coach-panel .panel-hint').forEach(el => { el.textContent = '预制演示不调用模型；实时分析中可引用证据提问。'; });
   }
@@ -257,6 +315,7 @@ async function mutate(action, body, success) {
     if (coachRevision !== ui.coachRevision) next.coach = ui.view.coach;
     ui.view = next;
     if (action === 'constraints') ui.currencyDraft = null;
+    if(ui.demo&&ui.demoTour&&/^practice\/.+\/answer$/.test(action))ui.demoTour.practice=true;
     if (action === 'operating-import') {
       ui.currencyDraft = null;
       delete ui.pageInputs.evidence;
@@ -299,6 +358,14 @@ app.addEventListener('click', async (event) => {
   if (target.dataset.toggle) { const id = target.dataset.toggle; ui.open.has(id) ? ui.open.delete(id) : ui.open.add(id); render(); return; }
   if (target.dataset.tab) { ui.tab = target.dataset.tab; render(); loadText(ui.tab); return; }
   const action = target.dataset.action;
+  if(action==='demo-pitch-open') {
+    if(!ui.demo)return;
+    ui.demoTour??=createDemoTour();ui.demoTour.mode='welcome';officePlayback=null;coachState().open=false;render();window.scrollTo(0,0);
+    return;
+  }
+  if(action==='demo-pitch-story'){if(ui.demo)app.querySelector('#pitch-story')?.scrollIntoView({block:'start'});return;}
+  if(action==='demo-pitch-coach'){if(ui.demo)openCoach();return;}
+  if(await handleDemoTour(action,target))return;
   if (action === 'coach-open') { captureCoachSelection(); openCoach(); return; }
   if (action === 'coach-close') { coachState().open = false; render(); document.getElementById('coach-launcher')?.focus({preventScroll:true}); return; }
   if (action === 'coach-use-selection') {
@@ -307,14 +374,14 @@ app.addEventListener('click', async (event) => {
     openCoach(selected); return;
   }
   if (action === 'coach-clear-quote') { coachState().quote = ''; render(); return; }
-  if (action === 'coach-suggest') { const preset = COACH_QUESTIONS.find(q => q.key === target.dataset.questionKey); if (preset) sendCoach(preset.question); return; }
+  if (action === 'coach-suggest') { const preset = (ui.demo?[...COACH_QUESTIONS,...PITCH_QUESTIONS]:COACH_QUESTIONS).find(q => q.key === target.dataset.questionKey); if (preset) sendCoach(preset.question); return; }
   if (action === 'coach-ask') { sendCoach(); return; }
   const node = target.dataset.node;
   if (action === 'enter-demo' || action === 'reset-demo') { await enterDemo(); return; }
   if (action === 'exit-demo') { await exitDemo(); return; }
   if (action === 'history') { await loadList(); ui.historyOpen = !ui.historyOpen; render(); return; }
   if (action === 'collapse-nav') { ui.collapsed = !ui.collapsed; store.set('pickwise.nav-collapsed', ui.collapsed ? '1' : '0'); render(); return; }
-  if (action === 'office-preview' || action === 'office-replay') { if (!ui.demo) await enterDemo(); clearTimeout(ui.pollTimer); ui.page = 'room'; officePlayback = { elapsed: 0, paused: false, speed: 1 }; syncLocation(); render(); return; }
+  if (action === 'office-preview' || action === 'office-replay') { if (!ui.demo) await enterDemo(); if(ui.demoTour?.mode==='welcome')ui.demoTour.mode='free'; clearTimeout(ui.pollTimer); ui.page = 'room'; officePlayback = { elapsed: 0, paused: false, speed: 1 }; syncLocation(); render(); return; }
   if (action === 'office-pause' && officePlayback) { officePlayback.paused = !officePlayback.paused; return; }
   if (action === 'office-speed' && officePlayback) { officePlayback.speed = officePlayback.speed === 1 ? 2 : officePlayback.speed === 2 ? .5 : 1; target.textContent = `${officePlayback.speed}×`; return; }
   if (action === 'office-exit') { officePlayback = null; syncLocation(); render(); schedulePoll(); return; }
@@ -431,6 +498,7 @@ function syncLocation() {
 }
 function navigate(page) {
   if (!PAGES[page]) return;
+  if(ui.demo&&ui.demoTour?.mode==='welcome')ui.demoTour.mode='free';
   ui.pageInputs[ui.page] = readInputs();
   ui.page = page;
   ui.historyOpen = false;
@@ -442,6 +510,7 @@ function navigate(page) {
   if (ui.view?.analysis && ['report', 'learning'].includes(page)) loadText(ui.tab);
 }
 async function enterDemo() {
+  ui.demoTour=createDemoTour();
   ui.coachState = null;
   clearTimeout(ui.pollTimer); ++ui.seq;
   if (!ui.demo) liveWorkspace = { view: ui.view, list: ui.list, config: ui.config, page: ui.page, tab: ui.tab, texts: ui.texts, draft: ui.draft, open: ui.open, focus: ui.focus, pageInputs: { ...ui.pageInputs, [ui.page]: readInputs() }, details: ui.details, activeStep: ui.activeStep, currencyDraft: ui.currencyDraft };
@@ -466,7 +535,8 @@ async function boot() {
     const play = params.has('office-demo');
     await enterDemo();
     if (page && PAGES[page]) navigate(page);
-    if (play) { officePlayback = { elapsed: 0, paused: false, speed: 1 }; ui.page = 'room'; render(); }
+    if (play) { ui.demoTour.mode='free';officePlayback = { elapsed: 0, paused: false, speed: 1 }; ui.page = 'room'; render(); }
+    else { ui.demoTour.mode='welcome';render(); }
     return;
   }
   try { ui.config = await api.config(); } catch (error) { ui.error = error.message; }
