@@ -96,7 +96,7 @@ export function renderTimeline(view, openIds, onlyId = null) {
         ${statusTag(step.status)}${step.templateOnly ? '<span class="tag orange">通用讲解</span>' : ''}
         <span class="step-time">${step.endedAt ? fmtTime(step.endedAt).slice(-8) : ''}</span>
       </header>
-      ${open ? `<div class="step-body">${failed ? `<div class="callout">${esc(step.error?.message ?? '失败')}</div><div class="btn-row"><button class="btn primary" data-action="retry" ${view.running ? 'disabled' : ''}>重试</button></div>` : ''}${running && !step.card ? `<div class="skeleton" aria-hidden="true"><i></i><i></i><i></i></div><p class="muted">${esc(step.activity ?? '进行中')}…（等待真实的数据读取与模型返回，不显示示意进度）</p>` : ''}${!step.card && !running && !failed ? `<div class="step-pending"><h3>${step.status === 'blocked' ? '等待确认商品' : '这一步尚未生成结果'}</h3><p>${step.status === 'blocked' ? '确认上方候选商品后，分析会继续。' : '分析进行到这里时，会展示查到的依据与结果。'}</p></div>` : ''}${cardBody(view, step, focused)}</div>` : ''}
+      ${open ? `<div class="step-body">${failed ? `<div class="callout">${esc(step.error?.message ?? '失败')}</div><div class="btn-row"><button class="btn primary" data-action="retry" ${view.running ? 'disabled' : ''}>重试</button></div>` : ''}${running && !step.card ? `<div class="skeleton" aria-hidden="true"><i></i><i></i><i></i></div><p class="muted">${esc(step.activity ?? '进行中')}…${view.simulated ? '（演示进行中，完成本步后展示结果）' : '（等待真实的数据读取与模型返回，不显示示意进度）'}</p>` : ''}${!step.card && !running && !failed ? `<div class="step-pending"><h3>${step.status === 'blocked' ? '等待确认商品' : '这一步尚未生成结果'}</h3><p>${step.status === 'blocked' ? '确认上方候选商品后，分析会继续。' : '分析进行到这里时，会展示查到的依据与结果。'}</p></div>` : ''}${cardBody(view, step, focused)}</div>` : ''}
     </article>`;
   }).join('');
 }
