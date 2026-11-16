@@ -23,7 +23,7 @@ test('demo guidance explains a visitor scenario, route and free exploration with
   const ui={demo:true,view:structuredClone(DEMO_CASE.view),page:'room',demoTour:createDemoTour()};
   const welcome=renderDemoGuide(ui);
   assert.match(welcome,/5,000 USD/);
-  assert.match(welcome,/约 3 分钟/);
+  assert.match(welcome,/约 5 分钟/);
   assert.match(welcome,/无需讲解员/);
   assert.equal(DEMO_TOUR_STEPS.length,5);
   assert.match(welcome,/我想自由探索/);
