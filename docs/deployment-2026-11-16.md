@@ -114,3 +114,14 @@ curl -fsS https://pickwise.icu/api/config
 - 已验证 HTTPS 首页、配置和材料页为 200；敏感路径 `.env`、`server/llm.js`、`data/sessions` 和 `.git/config` 为 404。浏览器线上五维报告与箱子教练可展开并回复预设问题，无控制台错误、无页面横向溢出。
 - 线上浏览器验收只使用预制演示，没有为部署验证额外发起付费商品采集或模型请求。截图保留在 `output/qa/2026-11-16-production-release.png`。
 - 本次干净公开检出：`tmp/publish-20261116T035112Z/public`；后续向该公开仓库提交应在干净检出中进行，不能直接把原本地私有历史分支推上去。
+
+
+## 同日更新：0.3.0 Expo 自助路演与导览
+
+- 公开代码提交：`6d2d996c419f875fef93a5711515d19d22cd9b8e`；本地实现提交：`398a8d4`。版本 `0.3.0`。
+- 线上版本：`/opt/pickwise/releases/20261116T044357Z`；上一版本 `20261116T041143Z` 和备份链接 `current.before-20261116T044357Z-retry1` 保留，未删除任何文件或历史数据。
+- 评委入口：https://pickwise.icu/?demo=1 。产品介绍、收费介绍、五站导览和产品预设问答仅在演示模式显示；实时首页及工作页面保持原有界面。
+- 发布检出的 201 项测试通过，GitHub Actions 运行 `43805986491` 成功。按用户要求不重复全流程验收，线上只核对服务启动、演示入口与切换模式；未调用付费采集或真实模型。
+- 首次文件校验按 Git blob 计算，与实际归档换行字节不同，自动回退旧版；改按实际部署 tar 包中的文件计算校验值后切换成功。tar 包 SHA256 为 `74f37bcc7cbcba55fbb20781ca48cf76c33cc6a13ed9f589aa639de6286bbd97`。
+- 应用服务 active，生产提供的 demo-pitch.js 与部署包一致。环境配置、线上会话、旧版发布和公开 /materials/ 保留。
+- 发布记录：`tmp/publish-expo-20261116T044357Z/release.json` 与远端 `/var/lib/pickwise/deploy-20261116T044357Z.json`；线上截图：`output/qa/2026-11-16-expo-production.png`。
