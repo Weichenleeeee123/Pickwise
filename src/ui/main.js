@@ -6,6 +6,7 @@ import { mountTermHelp } from './term-help.js';
 import { mountOfficeScene, createOfficeMotion, simulationAt, nextSimulationTime, simulationStepTime, SIMULATION_DURATION } from './office-scene.js';
 import { createDemoTour, demoTourStep, DEMO_TOUR_STEPS } from './demo-guide.js';
 import { PITCH_QUESTIONS } from './demo-pitch.js';
+import { createAutoPitch } from './auto-pitch.js';
 
 const app = document.querySelector('#app');
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* 无痕模式下忽略 */ } } };
@@ -71,6 +72,84 @@ let disposeOffice = () => {};
 let officeMotion = createOfficeMotion();
 let officeMotionKey = null;
 let printDisclosures = [];
+let autoPitch;
+function automaticPitch() { return autoPitch ??= createAutoPitch({
+  enter: enterAutoPitchScene,
+  cue: runAutoPitchCue,
+  progress(scene, ratio) {
+    if(scene.id==='office' && officePlayback) {
+      // The office and all six task details use the narration's media clock.
+      officePlayback.elapsed=Math.min(SIMULATION_DURATION,ratio*SIMULATION_DURATION);
+      officePlayback.paused=true;
+    }
+  },
+  change(state) {ui.autoPitch=state;render();},
+  finish() {
+    ui.demoTour.mode='complete';ui.demoTour.automatic=true;
+    officePlayback=null;coachState().open=false;render();window.scrollTo(0,0);
+  }
+}); }
+function autoPitchScroll(selector) {
+  app.querySelector(selector)?.scrollIntoView({block:'start',behavior:'instant'});
+}
+function autoPitchChapter(number) {
+  ui.demoTour.mode='welcome';officePlayback=null;coachState().open=false;
+  render();autoPitchScroll(`[data-pitch-chapter="${number}"]`);
+}
+async function enterAutoPitchScene(scene, current) {
+  if(!ui.demo || ui.demoAssistanceEnabled===false)return;
+  if(scene.id==='opening') {
+    ui.demoTour=createDemoTour();ui.pitchLowCvr=false;ui.details={};
+    ui.view=await api.demo();
+    if(!current())return;
+    ui.pageInputs={};renderedContext=null;autoPitchChapter(1);
+  } else if(scene.id==='need')autoPitchChapter(2);
+  else if(scene.id==='office') {
+    await visitDemoTour(0);if(!current())return;
+    ui.focus=null;officePlayback={elapsed:0,paused:true,speed:1};render();autoPitchScroll('.analysis-team');
+  } else if(scene.id==='competition') {
+    await visitDemoTour(1);if(!current())return;
+    ui.details['report:dimension-competition']=true;
+    render();autoPitchScroll('#report-dimension-competition');
+  } else if(scene.id==='evidence') {
+    ui.demoTour.evidence=true;
+    ui.details['report:dimension-demand']=true;ui.details['report:raw-demand-H1']=true;
+    render();autoPitchScroll('[data-disclosure-key="raw-demand-H1"]');
+  } else if(scene.id==='economics') {
+    await visitDemoTour(2);if(!current())return;
+    await applyDemoScenario('baseline');if(current())autoPitchScroll('#adjust');
+  } else if(scene.id==='sensitivity') {
+    await visitDemoTour(2);if(!current())return;
+    await applyDemoScenario('baseline');if(current())autoPitchScroll('#adjust');
+  } else if(scene.id==='coach') {
+    await visitDemoTour(3);if(!current())return;
+    autoPitchScroll('#report-dimension-profit');
+    coachState().quote=ui.view.analysis.result.dimensions.find(d=>d.key==='profit').judgment;
+    await sendCoach('利润最怕什么变化？请解释 CVR 减半后的成本和贡献。');
+  } else if(scene.id==='practice') {
+    await visitDemoTour(4);if(!current())return;
+    await mutate('practice/N3/start',{});if(!current())return;
+    autoPitchScroll('input[name="p-N3"]');
+    app.querySelector('input[name="p-N3"]')?.closest('.practice')?.scrollIntoView({block:'center'});
+  } else if(scene.id==='business')autoPitchChapter(7);
+  else if(scene.id==='closing')autoPitchChapter(8);
+}
+async function runAutoPitchCue(scene,current) {
+  if(!current() || !ui.demo)return;
+  if(scene.id==='sensitivity') {
+    await applyDemoScenario('low-cvr');if(current())autoPitchScroll('#adjust');
+  } else if(scene.id==='practice') {
+    await mutate('practice/N3/answer',{choice:'b',demonstration:true});
+    if(!current())return;
+    ui.demoTour.practice=false;ui.demoTour.practiceDemo=true;
+    app.querySelector('input[name="p-N3"]')?.closest('.practice')?.scrollIntoView({block:'center'});
+  }
+}
+function stopAutoPitch({free=true}={}) {
+  if(!autoPitch?.state.active)return;
+  autoPitch.stop();
+  if(free && ui.demoTour)ui.demoTour.mode='free';
+}
 async function applyDemoScenario(scenario) {
   if (!ui.demo || !ui.view || ui.busy) return false;
   const seq=ui.seq, id=ui.view.id;
@@ -361,6 +440,19 @@ app.addEventListener('submit', async (event) => {
 app.addEventListener('click', async (event) => {
   const target = event.target.closest('[data-action], [data-open], [data-toggle], [data-tab], [data-page], [data-step-select]');
   if (!target || target.disabled) return;
+  const autoAction=target.dataset.action;
+  if(autoAction?.startsWith('auto-pitch-')) {
+    if(!ui.demo || ui.demoAssistanceEnabled===false)return;
+    if(autoAction==='auto-pitch-start'){if(!ui.busy)automaticPitch().start();return;}
+    if(!autoPitch?.state.active)return;
+    if(autoAction==='auto-pitch-pause')await autoPitch.toggle();
+    else if(autoAction==='auto-pitch-replay')await autoPitch.replay();
+    else if(autoAction==='auto-pitch-mute')autoPitch.mute();
+    else if(autoAction==='auto-pitch-stop'){stopAutoPitch();officePlayback=null;render();}
+    return;
+  }
+  // Taking over a page hands control back to the visitor immediately.
+  if(autoPitch?.state.active) {stopAutoPitch();render();}
   if (target.dataset.page) { navigate(target.dataset.page); return; }
   if (target.dataset.stepSelect) {
     ui.activeStep = target.dataset.stepSelect; ui.focus = ui.activeStep; ui.open = new Set([ui.activeStep]);
@@ -546,6 +638,7 @@ function navigate(page) {
   if (ui.view?.analysis && ['report', 'learning'].includes(page)) loadText(ui.tab);
 }
 async function enterDemo({ replay = false } = {}) {
+  stopAutoPitch({free:false});
   ui.pitchLowCvr=false;
   ui.demoTour=createDemoTour();
   ui.coachState = null;
@@ -561,6 +654,7 @@ async function enterDemo({ replay = false } = {}) {
   await loadList(); syncLocation(); render(); window.scrollTo(0, 0); loadText(ui.tab);
 }
 async function exitDemo() {
+  stopAutoPitch({free:false});
   ui.coachState = null;
   ++ui.seq; clearTimeout(ui.pollTimer); setDataMode('live'); ui.demo = false; ui.busy = false; officePlayback = null;
   const saved = liveWorkspace; liveWorkspace = null;

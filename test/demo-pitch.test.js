@@ -12,7 +12,7 @@ test('the unattended pitch explains user, work, teaching, business and evidence 
   for(const text of ['新手','一人','数字员工','需求是否持续','自主研究','五维判断','程序计算','教学','已经实现','下一步验证','¥49','¥129','待验证测试价','当前未开通收款'])assert.ok(html.includes(text),text);
   const order=['01 / 我们是什么','02 / 用户为什么需要','03 / Agent 承担什么工作','04 / 实际做到了什么','05 / 教学差异在哪里','06 / 方法怎样留下来','07 / 商业模式怎样成立','08 / 下一步验证什么'].map(x=>html.indexOf(x));
   assert.ok(order.every(x=>x>=0));assert.deepEqual([...order].sort((a,b)=>a-b),order);
-  assert.equal((html.match(/data-action="demo-tour-start"/g)??[]).length,2);
+  assert.equal((html.match(/data-action="auto-pitch-start"/g)??[]).length,2);
   assert.match(html,/href="https:\/\/pickwise.icu\/materials\/pitch-preview.pdf"/);
   assert.doesNotMatch(html,/<form|data-action="purchase"|稳赚|已有.*付费客户/);
 });
