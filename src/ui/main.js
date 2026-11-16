@@ -494,7 +494,7 @@ app.addEventListener('input', (event) => {
 });
 
 app.addEventListener('change', async (event) => {
-  if (event.target.matches('[data-sim-seek]') && officePlayback) {
+  if (officePlayback && event.target.matches?.('[data-sim-seek]')) {
     render(); app.querySelector('[data-sim-seek]')?.focus({ preventScroll: true }); return;
   }
   if (event.target.id === 'c-cur') { ui.currencyDraft = event.target.value; render(); return; }
