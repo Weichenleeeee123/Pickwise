@@ -1,22 +1,26 @@
-import { TEACHING_TERM_BY_KEY, termsForContext } from '../terms.js';
+import { TEACHING_TERMS, TEACHING_TERM_BY_KEY } from '../terms.js';
 
 export const esc = (value = '') => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function reportTerms(result, figures = []) {
-  if (result?.glossary?.length) return result.glossary.filter((item) => TEACHING_TERM_BY_KEY[item.key]);
-  const fallback = termsForContext(JSON.stringify({ result, figures }));
-  return fallback.slice(0, 8).map(({ key, definition }) => ({ key, explanation: definition }));
+  const contextual = new Map((result?.glossary ?? []).filter(item => TEACHING_TERM_BY_KEY[item.key] && item.explanation).map(item => [item.key,item.explanation]));
+  return TEACHING_TERMS.map(term => ({key:term.key,explanation:contextual.get(term.key) ?? term.definition}));
 }
 
 export function termText(value, glossary = []) {
-  const entries = glossary.map((item) => ({ ...item, label: TEACHING_TERM_BY_KEY[item.key]?.label })).filter((item) => item.label && item.explanation);
-  if (!entries.length) return esc(value);
-  const byLabel = new Map(entries.map((item) => [item.label.toLowerCase(), item]));
-  const pattern = new RegExp(`(${entries.map((item) => item.label.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).sort((a, b) => b.length - a.length).join('|')})`, 'gi');
-  return String(value ?? '').split(pattern).map((part) => {
+  const byLabel = new Map();
+  for (const item of glossary) {
+    const term = TEACHING_TERM_BY_KEY[item.key];
+    if (!term || !item.explanation) continue;
+    for (const alias of [term.label,...term.matches.filter(alias => !alias.includes('_'))]) byLabel.set(alias.toLowerCase(),item);
+  }
+  if (!byLabel.size) return esc(value);
+  const escapePattern = text => text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const pattern = new RegExp(`(${[...byLabel.keys()].sort((a,b) => b.length-a.length).map(alias => `${/^[a-z0-9]/i.test(alias) ? '(?<![a-z0-9_])' : ''}${escapePattern(alias)}${/[a-z0-9]$/i.test(alias) ? '(?![a-z0-9_])' : ''}`).join('|')})`,'gi');
+  return String(value ?? '').split(pattern).map(part => {
     const item = byLabel.get(part.toLowerCase());
     return item
-      ? `<abbr class="term-help" tabindex="0" title="${esc(item.explanation)}">${esc(part)}</abbr>`
+      ? `<abbr class="term-help" tabindex="0" role="button" aria-expanded="false" title="${esc(item.explanation)}">${esc(part)}</abbr>`
       : esc(part);
   }).join('');
 }

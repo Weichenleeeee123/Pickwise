@@ -34,19 +34,9 @@ function annotationBlock(view, dimension, glossary) {
   }).join('')}</div>`;
 }
 
-function glossaryBlock(glossary) {
-  const used = new Set(glossary.map((item) => item.key));
-  const generated = glossary.map((item) => {
-    const label = TEACHING_TERM_BY_KEY[item.key]?.label;
-    return label ? `<li><details class="term-help"><summary title="${esc(item.explanation)}">${esc(label)}</summary><span>${esc(item.explanation)}</span></details></li>` : '';
-  }).join('');
-  const more = TEACHING_TERMS.filter((term) => !used.has(term.key)).map((term) => `<li><details class="term-help"><summary title="${esc(term.definition)}">${esc(term.label)}</summary><span>${esc(term.definition)}</span></details></li>`).join('');
-  return `<div class="glossary-groups"><details class="glossary"><summary>本次报告术语</summary><ul>${generated || '<li class="muted">本次分析没有使用需要单独解释的术语。</li>'}</ul></details><details class="glossary"><summary>更多常见术语</summary><ul>${more}</ul></details></div>`;
-}
-
-function reportMetrics(report) {
+function reportMetrics(report, glossary) {
   if (!report?.metrics?.length) return '';
-  return '<section class="panel report-economics" aria-label="报告成本与资金"><div class="panel-head"><div><h2 class="panel-title">成本与资金，一眼看清</h2><p class="panel-hint">正式测算与货源初筛分别标明；缺项保留未知。</p></div></div><div class="panel-body"><div class="report-metric-grid">' + report.metrics.map(m => '<article class="report-metric"><span>' + esc(m.label) + '</span><strong>' + esc(m.value) + '</strong>' + natureTag(m.nature) + '<p>' + esc(m.note) + '</p>' + ids(m.evidence_ids ?? []) + '</article>').join('') + '</div><details class="report-coverage" data-disclosure-key="report-coverage"><summary>查看已取得的证据与范围</summary><ul>' + (report.coverage ?? []).map(c => '<li><b>' + esc(c.label) + '</b><span>' + (c.available ? '已取得' : '待补充') + '</span>' + ids(c.evidence_ids ?? []) + '</li>').join('') + '</ul></details></div></section>';
+  return '<section class="panel report-economics" aria-label="报告成本与资金"><div class="panel-head"><div><h2 class="panel-title">成本与资金，一眼看清</h2><p class="panel-hint">正式测算与货源初筛分别标明；缺项保留未知。</p></div></div><div class="panel-body"><div class="report-metric-grid">' + report.metrics.map(m => '<article class="report-metric"><span>' + termText(m.label,glossary) + '</span><strong>' + esc(m.value) + '</strong>' + natureTag(m.nature) + '<p>' + termText(m.note,glossary) + '</p>' + ids(m.evidence_ids ?? []) + '</article>').join('') + '</div><details class="report-coverage" data-disclosure-key="report-coverage"><summary>查看已取得的证据与范围</summary><ul>' + (report.coverage ?? []).map(c => '<li><b>' + esc(c.label) + '</b><span>' + (c.available ? '已取得' : '待补充') + '</span>' + ids(c.evidence_ids ?? []) + '</li>').join('') + '</ul></details></div></section>';
 }
 
 export function renderReportOverview(view) {
@@ -55,7 +45,7 @@ export function renderReportOverview(view) {
   const result = analysis.result;
   const glossary = reportTerms(result, analysis.figures);
   const gaps = result.dimensions.filter(d => d.gap || d.signal === 'insufficient').length;
-  return `${analysis.stale ? '<div class="callout report-stale" role="status">成本或证据已变化，以下报告对应旧版本。请在重新分析完成后查看更新结论。</div>' : ''}<section class="report-overview" id="report-overview" aria-labelledby="report-verdict"><div class="report-overview-main"><span class="eyebrow">01 / 先看结论</span><h2 id="report-verdict">${esc(result.verdict.title ?? view.buckets[result.verdict.bucket] ?? '等待判断')}</h2><p>${termText(result.verdict.reason, glossary)}</p><div class="report-version">版本 ${esc(analysis.version)} · ${esc(fmtTime(analysis.createdAt))}${analysis.stale ? ' · 文字结论待更新' : ''}</div></div><dl class="report-overview-facts"><div><dt>本次证据</dt><dd>${view.evidence.length}<small>条记录</small></dd></div><div><dt>${view.preloadedDemo ? '证据覆盖' : '仍有缺口'}</dt><dd>${view.preloadedDemo ? result.dimensions.length - gaps : gaps}<small>${view.preloadedDemo ? '个维度齐备' : '个维度'}</small></dd></div><div><dt>下一步</dt><dd>${result.next_steps.length}<small>${view.preloadedDemo || result.report ? "项执行" : "项验证"}</small></dd></div></dl></section>${reportMetrics(result.report)}`;
+  return `${analysis.stale ? '<div class="callout report-stale" role="status">成本或证据已变化，以下报告对应旧版本。请在重新分析完成后查看更新结论。</div>' : ''}<section class="report-overview" id="report-overview" aria-labelledby="report-verdict"><div class="report-overview-main"><span class="eyebrow">01 / 先看结论</span><h2 id="report-verdict">${esc(result.verdict.title ?? view.buckets[result.verdict.bucket] ?? '等待判断')}</h2><p>${termText(result.verdict.reason, glossary)}</p><div class="report-version">版本 ${esc(analysis.version)} · ${esc(fmtTime(analysis.createdAt))}${analysis.stale ? ' · 文字结论待更新' : ''}</div></div><dl class="report-overview-facts"><div><dt>本次证据</dt><dd>${view.evidence.length}<small>条记录</small></dd></div><div><dt>${view.preloadedDemo ? '证据覆盖' : '仍有缺口'}</dt><dd>${view.preloadedDemo ? result.dimensions.length - gaps : gaps}<small>${view.preloadedDemo ? '个维度齐备' : '个维度'}</small></dd></div><div><dt>下一步</dt><dd>${result.next_steps.length}<small>${view.preloadedDemo || result.report ? "项执行" : "项验证"}</small></dd></div></dl></section>${reportMetrics(result.report,glossary)}`;
 }
 
 export function renderDimensions(view) {
@@ -72,7 +62,7 @@ export function renderDimensions(view) {
       return `<article class="dimension" id="report-dimension-${esc(def.key)}"><div class="dimension-heading"><h3 class="dimension-name">${esc(def.name)}</h3>${signalTag(d.signal)}</div><p class="dimension-question">${esc(def.ask)}</p><p class="judgment">${termText(d.judgment, glossary)}</p>${(d.interpretation ?? []).length ? `<div class="dimension-reading">${d.interpretation.map(p => `<p>${termText(p, glossary)}</p>`).join('')}</div>` : ''}${d.gap ? `<div class="dimension-gap"><b>待补充</b><span>${termText(d.gap, glossary)}</span></div>` : ''}<details class="dimension-details" data-disclosure-key="dimension-${esc(def.key)}"><summary>查看原始数据与判断依据<span>${(d.source_records ?? []).length} 条原始记录 · ${(d.basis ?? []).length} 条依据</span></summary><div>${(d.basis ?? []).length ? `<ul class="found">${d.basis.map((b) => `<li>${natureTag(b.nature)}<span>${termText(b.text, glossary)}</span>${ids(b.evidence_ids)}</li>`).join('')}</ul>` : '<p class="muted">该维度暂无引用依据，不能据此补出判断。</p>'}${annotationBlock(view, d, glossary)}${renderDimensionSources(view, d)}</div></details></article>`;
     }).join('')}</div>
     ${unannotated.length ? `<p class="muted">未提供的数字：${unannotated.map((f) => `${esc(f.label)}（${esc(f.meta ?? '缺少输入')}）`).join('；')}。它们显示为“未提供”，没有按零处理。</p>` : ''}
-    ${glossaryBlock(glossary)}</div></section>`;
+    </div></section>`;
 }
 
 export { renderCoach, performCoachAction } from './coach.js';
@@ -136,7 +126,7 @@ function practiceCard(view, nodeId) {
   }).join('');
   return `<div class="practice">${head}${record.stale ? '<div class="callout">成本已变化，这道题基于旧数字。</div>' : ''}<h4>${esc(q.question)}</h4><div class="radio-list">${options}</div>
     ${done ? `<div class="outcome"><span class="outcome-mark">${record.answer.correct ? '✓' : 'i'}</span><div><strong>${record.answer.correct ? '判断正确' : '参考方法'}</strong><p>${esc(record.feedback?.feedback ?? '')}</p>${record.feedback?.refers_to_judgment ? `<p><b>回到你的初判：</b>${esc(record.feedback.refers_to_judgment)}</p>` : ''}<p><b>可迁移规则：</b>${esc(record.feedback?.method_reminder ?? '')}</p>${record.feedback?.fallback ? '<small>个性化反馈未通过校验，显示的是选项说明。</small>' : ''}</div></div>`
-      : `<div class="btn-row"><button class="btn primary" data-action="practice-answer" data-node="${nodeId}">提交答案</button><button class="btn" data-action="practice-hint" data-node="${nodeId}">给我一个提示</button><button class="btn ghost" data-action="practice-skip" data-node="${nodeId}">跳过</button></div>${record.hintShown ? `<p class="hint">提示：${esc(q.hint)}（已使用 ${record.hints} 次）</p>` : ''}`}</div>`;
+      : `<div class="btn-row"><button class="btn primary" data-action="practice-answer" data-node="${nodeId}">提交答案</button><button class="btn" data-action="practice-hint" data-node="${nodeId}">给我一个提示</button><button class="btn ghost" data-action="practice-skip" data-node="${nodeId}">跳过</button></div>${record.hintShown ? `<p class="hint">提示：${esc(q.hint)}（已使用 ${record.hints} 次）</p>` : ''}`}${done&&view.preloadedDemo?`<button class="btn ghost" data-action="practice-start" data-node="${nodeId}">再试一次</button>`:''}</div>`;
 }
 
 export function renderPractice(view) {

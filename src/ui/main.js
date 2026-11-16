@@ -2,6 +2,7 @@ import { api, ApiError, setDataMode } from './api.js';
 import { PAGES, renderAppShell, renderWorkspace } from './workspace.js';
 import { esc } from './common.js';
 import { COACH_QUESTIONS } from './coach.js';
+import { mountTermHelp } from './term-help.js';
 import { mountOfficeScene, createOfficeMotion } from './office-scene.js';
 
 const app = document.querySelector('#app');
@@ -67,6 +68,7 @@ let disposeOffice = () => {};
 let officeMotion = createOfficeMotion();
 let officeMotionKey = null;
 let printDisclosures = [];
+let termHelp = { close() {} };
 window.addEventListener?.('beforeprint', () => {
   printDisclosures = [...app.querySelectorAll('.report-dimensions details, .report-actions details')].map(element => [element, element.open]);
   for (const [element] of printDisclosures) element.open = true;
@@ -121,6 +123,7 @@ function reportViewedIfNeeded() {
 }
 
 function render() {
+  termHelp.close();
   coachState();
   const previousChatScroll = app.querySelector?.('.coach-messages')?.scrollTop;
   disposeOffice();
@@ -456,6 +459,7 @@ async function exitDemo() {
   ui.historyOpen = false; ui.error = null; syncLocation(); render(); schedulePoll();
 }
 async function boot() {
+  termHelp = mountTermHelp(app);
   const params = new URLSearchParams(location.search);
   const page = params.get('page');
   if (params.has('demo') || params.has('office-demo')) {

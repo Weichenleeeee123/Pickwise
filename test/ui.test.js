@@ -85,15 +85,14 @@ test('teaching timeline states evidence boundaries and final report exposes term
   const timeline = renderTimeline(view, new Set(['identify']));
   assert.match(timeline, /输入能匹配到 ASIN。/);
   assert.match(timeline, /这不证明规格与实物一致。/);
-  assert.match(renderDimensions(view), /本次报告术语/);
+  assert.doesNotMatch(renderDimensions(view), /本次报告术语|更多常见术语/);
   assert.match(renderDimensions(view), /BSR 是商品在类目中的销售排名，排名变化不能直接换算为订单。/);
-  assert.match(renderDimensions(view), /<abbr class="term-help" tabindex="0" title="BSR 是商品在类目中的销售排名，排名变化不能直接换算为订单。">BSR<\/abbr>/);
+  assert.match(renderDimensions(view), /<abbr class="term-help" tabindex="0" role="button" aria-expanded="false" title="BSR 是商品在类目中的销售排名，排名变化不能直接换算为订单。">BSR<\/abbr>/);
   assert.match(renderCoach(view), /coach-use-selection/);
   assert.match(renderCoach(view), /纸箱小教练/);
   assert.match(renderCoach(view), /coach-question/);
   assert.match(renderCoach(view), /coach-panel/);
-  assert.match(renderDimensions(view), /<details class="term-help">/);
-  assert.match(renderDimensions(view), /单件贡献/);
+  assert.doesNotMatch(renderDimensions(view), /<details class="term-help">/);
   const selectedField = { value: '', focus() { this.focused = true; } };
   assert.equal(performCoachAction('coach-quote', { getSelection: () => '引用文本', getField: () => selectedField, toast() {}, submit() {} }), true);
   assert.equal(selectedField.value, '引用文本');

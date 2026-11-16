@@ -1,11 +1,11 @@
 {
   "name": "pickwise",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node server.js",
     "preview": "node scripts/start-preview.mjs",
-    "test": "node --test"
+    "test": "node --test test/*.test.js"
   }
 }

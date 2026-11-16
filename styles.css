@@ -998,3 +998,8 @@ a:hover { color: #275738; }
 @media print { .coach-widget { display:none!important; } .source-record,.source-record-body { overflow:visible; } .source-record pre { max-height:none; } }
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 .coach-version { display:block; font-size:10px; line-height:1.8; color:#8b7756; margin:-3px 0 9px; }
+
+.inline-term-tooltip { position:fixed; z-index:110; padding:13px 16px; border:1px solid #c8d5ba; border-radius:10px; background:#fffef5; color:#36543f; box-shadow:0 6px 26px #173f2d24; font-size:12px; line-height:1.85; overflow-wrap:anywhere; pointer-events:none; }
+abbr.term-help[aria-expanded="true"] { color:var(--green-dark); background:#e5eddb; border-radius:3px; }
+.report-overview abbr.term-help[aria-expanded="true"] { color:#fffbed; background:#ffffff16; }
+@media print { .inline-term-tooltip { display:none!important; } }

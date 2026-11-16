@@ -396,7 +396,7 @@ test('exports contain no secrets and state when no initial judgment was given', 
   assert.match(exported.body, /变体售价范围 USD 24.99 至 39.99/);
   assert.match(exported.body, /规格概览 Print technology Thermal/);
   assert.match(exported.body, /卖家评分 98/);
-  assert.match(exported.body, /本次报告术语/);
+  assert.doesNotMatch(exported.body, /## 本次报告术语/);
   assert.doesNotMatch(exported.body, /LLM_API_KEY|sk-/);
   await app.close();
 });

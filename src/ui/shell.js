@@ -1,5 +1,6 @@
 import { esc, MODE, CHOICE, RESEARCH, LEARNING, OUTCOME, fmtTime, modeOf, safeLink, windowText, statusTag } from './common.js';
 import { renderMarkdown } from './md.js';
+import { reportTerms } from './common.js';
 
 export function renderEntry(config, error) {
   const off = config && !config.llm.configured && !config.preloadedDemo;
@@ -119,7 +120,7 @@ export function renderDeliverables(view, tab, texts) {
   const regen = tab === 'learning' ? `<div class="btn-row">${learning.recordStatus === 'failed' ? `<div class="callout">${esc(learning.error?.message ?? '学习记录生成失败')}</div>` : ''}<button class="btn" data-action="gen-learning" ${view.running ? 'disabled' : ''}>${learning.record ? (learning.recordStale ? '更新学习记录（内容已过期）' : '重新生成学习记录') : '生成学习记录正文'}</button></div>` : '';
   return `<section class="panel" id="deliver"><div class="panel-head"><div><div class="panel-title">交付成果</div><div class="panel-hint">${esc(view.product.name)} · ${MODE[modeOf(view)]} · 分析版本 ${view.analysis?.version ?? '—'} · 学习结果：${OUTCOME[view.learning.outcome]}（学习状态与研究状态分开显示）</div></div><div class="btn-row"><button class="btn primary" data-action="download" data-kind="${tab}">下载 Markdown</button><button class="btn" data-action="print">打印</button></div></div>
     <div class="tabs">${Object.entries(labels).map(([key, label]) => `<button class="${tab === key ? 'active' : ''}" data-tab="${key}">${label}</button>`).join('')}</div>
-    <div class="panel-body"><article class="report">${regen}${texts[tab] !== undefined ? renderMarkdown(texts[tab]) : '<p class="muted">加载中…</p>'}</article></div></section>`;
+    <div class="panel-body"><article class="report">${regen}${texts[tab] !== undefined ? renderMarkdown(texts[tab],{glossary:reportTerms(view.analysis?.result,view.analysis?.figures)}) : '<p class="muted">加载中…</p>'}</article></div></section>`;
 }
 
 export function renderTitleless() { return ''; }

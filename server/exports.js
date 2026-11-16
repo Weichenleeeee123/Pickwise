@@ -98,13 +98,6 @@ export function analysisMarkdown(session) {
     });
     return [`### ${def.name} · ${SIGNAL[d.signal]}`, d.judgment, ...(d.interpretation ?? []), bullets((d.basis ?? []).map((b) => `${b.text}（${nature(b.nature)}${b.evidence_ids?.length ? `；${b.evidence_ids.join('、')}` : ''}）`)), d.gap ? `缺口：${d.gap}` : '', annotations.length ? `数字怎么读：\n${annotations.join('\n')}` : ''].filter(Boolean).join('\n\n');
   }).join('\n\n');
-  const termContext = JSON.stringify({ product: session.product, evidence: session.evidence, figures: analysis.figures, steps: session.steps.map(step => step.card) });
-  const glossary = result.glossary?.length
-    ? result.glossary.map((item) => {
-      const term = TEACHING_TERM_BY_KEY[item.key];
-      return `- ${term?.label ?? item.key}：${item.explanation}`;
-    })
-    : termsForContext(termContext).slice(0, 8).map(term => `- ${term.label}：${term.definition}`);
   const processTeaching = session.steps.filter(step => step.card).map(step => `- ${step.title}：本次能说明：${step.card.scope?.can_show ?? '当前来源记录的内容。'}；本次不能说明：${step.card.scope?.cannot_show ?? '超出当前来源和样本范围的结论。'}`).join('\n');
   const econ = computeEconomics(session);
   const funding = computeFunding(session);
@@ -148,10 +141,6 @@ ${bullets((result.report?.coverage ?? []).map(c => `${c.label}：${c.available ?
 ## 五维分析
 
 ${dims}
-
-## 本次报告术语
-
-${bullets(glossary)}
 
 ## 分析过程的证据边界
 
