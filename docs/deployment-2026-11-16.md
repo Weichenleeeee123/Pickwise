@@ -135,3 +135,12 @@ curl -fsS https://pickwise.icu/api/config
 - 发布 tar 包包含 174 个文件，SHA256 为 `77dce014092d0abe4da8ecff649a4500eb4960a774ad6ac1836216152b85ddca`；归档与逐文件校验均通过。服务 active，生产提供的 `demo-pitch.js`、`demo-guide.js`、`main.js` 和 `styles.css` 与归档字节一致，演示入口和公开材料页可访问。
 - 按用户要求未重跑本地测试、浏览器体验或真实付费调用。提交触发的 GitHub Actions 自动检查 `43808020931` 成功；未额外触发重复检查。
 - 发布资料保存在 `tmp/publish-expo-20261116T050514Z/`，远端结果保存在 `/var/lib/pickwise/deploy-20261116T050514Z.json`。本次使用既有 `claude.pem` 身份连接服务器，私钥与配置未进入归档。
+
+## 同日更新：0.3.2 演示过程同步与手动跳步
+
+- 公开发布提交：`00b3ed9db6e177166e75e3f8e81cd6bb6b85a1e9`，PR：https://github.com/Weichenleeeee123/Pickwise/pull/1；本地实现提交为 `142093e`、`289d9a1`。版本 `0.3.2`。
+- 线上版本：`/opt/pickwise/releases/20261116T051328Z`。上一版本 `20261116T050514Z` 和原指针 `/opt/pickwise/current.before-20261116T051328Z` 保留，未删除文件、历史会话、环境配置或旧发布目录。
+- 从首页案例入口进入演示时，办公室动画、六步状态、证据数量和步骤详情使用同一时间线，从 0/6 开始逐步展示。增加“下一步”按钮，也可点击尚未开始的步骤跳转；关闭自助讲解保留回放进度。进度条拖动完成后同步刷新详情，避免跨阶段时拖动中断。
+- tar 包含 174 个文件，SHA256：`a40b4c82a2b1311a628d7fd817b08d37ab2fe849bd8e3bfa223ac845daa0cf6b`；归档与逐文件校验通过，线上五个修改模块与发布包字节一致。服务 active，演示入口与 `/materials/` 可访问。
+- 遵从用户要求，没有运行本地测试、浏览器验收或付费分析。提交触发的 GitHub 自动检查发现并修正事件处理兼容问题后通过；合并后的主分支检查 `43809138195` 成功。没有主动触发重复检查。
+- 发布资料：`tmp/publish-demo-replay-20261116T051328Z/`；远端结果：`/var/lib/pickwise/deploy-20261116T051328Z.json`。与本任务无关的两份项目文档改动未包含在发布中。
