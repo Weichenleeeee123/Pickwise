@@ -9,24 +9,26 @@ export const DEMO_TOUR_STEPS = [
   { id:'learning', page:'learning', label:'带走方法', title:'最后试一题：你学到的是结论，还是方法？', description:'用这个商品做一道利润题。选一个答案就能得到反馈和可迁移规则；答错也没关系，教学正是嵌在刚才的研究里。', action:'demo-tour-practice', actionLabel:'打开 30 秒利润小题', next:'完成体验，看看收获 →', takeaway:'Pickwise 不仅交付商品研究，也帮助主理人学会读数据、算成本，把方法带到下一次选品。' }
 ];
 
-export function createDemoTour() { return { mode:'welcome', index:0, evidence:false, scenario:false, coach:false, practice:false }; }
+export function createDemoTour() { return { mode:'welcome', index:0, compact:false, evidence:false, scenario:false, coach:false, practice:false }; }
+export function demoAssistanceEnabled(ui) { return Boolean(ui.demo && ui.demoAssistanceEnabled !== false); }
 export function demoTourStep(state) { return DEMO_TOUR_STEPS[Math.min(DEMO_TOUR_STEPS.length-1,Math.max(0,Number(state?.index)||0))]; }
 const mascot = '<img src="/assets/brand/pickwise-icon.svg" alt="" width="56" height="56">';
 const button = (action,label,primary=false) => `<button class="btn ${primary?'primary':''}" data-action="${action}">${label}</button>`;
 
 export function renderDemoGuide(ui) {
-  if (!ui.demo || !ui.view?.preloadedDemo) return '';
+  if (!demoAssistanceEnabled(ui) || !ui.view?.preloadedDemo) return '';
   const state=ui.demoTour ?? createDemoTour(), step=demoTourStep(state);
-  if(state.mode==='free') return `<aside class="demo-guide-minimal" aria-label="演示导览"><span>自由探索 · 所有操作仅作用于本次模拟案例</span><div>${button('demo-tour-resume','继续自助导览 ↗')}${button('demo-tour-restart','下一位体验 / 从头开始')}</div></aside>`;
+  if(state.mode==='free') return `<aside class="demo-guide-minimal demo-guide-floating demo-guide-paused" aria-label="自助导览浮层"><span>自由探索中 · 导览进度已保留</span><div>${button('demo-tour-resume','继续自助导览 ↗')}${button('demo-assistance-toggle','关闭自助讲解')}</div></aside>`;
   if(state.mode==='complete') return `<section class="demo-guide demo-tour-finish" aria-labelledby="demo-guide-title"><div class="demo-guide-voice">${mascot}<div><span class="eyebrow">体验回顾 / TAKE THE METHOD WITH YOU</span><h2 id="demo-guide-title">从一个商品，到有依据的经营判断。</h2><p>你刚才看到的，是选品数字员工与嵌入式教学的一条完整路径。研究过程、原始证据、经营测算和随时可问的教练，围绕同一个商品工作。</p></div></div><div class="demo-tour-recap">${[['evidence','核对原始数据','可追溯的商品研究'],['scenario','尝试参数变化','理解利润成立的条件'],['coach','与箱子教练对话','围绕现场证据继续追问'],['practice','亲自做一道题','把方法带到下一次选品']].map(([key,title,note])=>`<div><span class="${state[key]?'is-done':''}">${state[key]?'✓':'○'}</span><b>${title}</b><small>${state[key]?'已体验':'还可以试试'} · ${note}</small></div>`).join('')}</div><p class="demo-guide-boundary">本次为完整虚构案例；实时模式使用实际来源和模型分析，数据不足时保留缺口，费用与预算需要按实际经营条件填写。</p><div class="demo-guide-actions">${button('demo-pitch-open','再看产品介绍',true)}${button('demo-tour-restart','下一位体验 / 从头开始')}${button('demo-tour-free','继续自由探索')}${button('demo-tour-download','下载这份案例报告')}</div></section>`;
-  if(state.mode==='welcome') return renderDemoPitch();
+  if(state.mode==='welcome') return renderDemoPitch({lowCvr:Boolean(ui.pitchLowCvr)});
   const onPage=ui.page===step.page;
   let result='';
   if(step.id==='economics' && onPage) {
     const econ=ui.view.econ, cvr=ui.view.constraints?.effective?.cvr;
     result=`<div class="demo-scenario-result" role="status"><div><span>基准案例 · CVR 12%</span><b>$4.70 <small>/ 件</small></b></div><span class="scenario-arrow" aria-hidden="true">→</span><div><span>当前试算 · CVR ${Number.isFinite(cvr)?+(cvr*100).toFixed(2)+'%':'未知'}</span><b>${econ.status==='complete'?'$'+econ.postAdContribution.toFixed(2):'未算出'} <small>/ 件</small></b></div><p>${econ.status==='complete'?`按当前输入，获客成本 $${econ.acquisitionCost.toFixed(2)}，广告后贡献 $${econ.postAdContribution.toFixed(2)}。销量再热，也要问：我的售价、费用和转化条件能否成立？`:'当前成本或汇率缺项，尚不能计算广告后贡献。恢复基准，或补齐输入后再比较。'}</p>${button('demo-tour-baseline','恢复基准案例')}</div>`;
   }
-  return `<section class="demo-guide demo-tour-active" aria-labelledby="demo-guide-title"><div class="demo-tour-heading"><span class="eyebrow">自助体验 · ${state.index+1} / ${DEMO_TOUR_STEPS.length}</span><button class="demo-guide-quiet" data-action="demo-tour-free">收起导览，自由探索</button></div><nav class="demo-tour-stops" aria-label="自助体验路线">${DEMO_TOUR_STEPS.map((s,i)=>`<button data-action="demo-tour-step" data-tour-index="${i}" class="${i===state.index?'active':''}" aria-current="${i===state.index?'step':'false'}"><span>${i+1}</span>${s.label}</button>`).join('')}</nav><div class="demo-guide-content"><div><h2 id="demo-guide-title">${esc(step.title)}</h2><p>${esc(onPage?step.description:'你正在自由查看其他页面。导览进度已保留，点击“回到这一步”即可继续。')}</p><p class="demo-guide-lesson"><span>这一站看什么</span>${esc(step.takeaway)}</p></div><div class="demo-guide-actions">${onPage?button(step.action,step.actionLabel,true):button('demo-tour-resume','回到这一步',true)}${button('demo-tour-next',step.next)}${state.index>0?button('demo-tour-back','← 上一步'):''}</div></div>${result}<p class="demo-guide-boundary">模拟案例用于演示流程；动画是协作回放，数字来自预制输入与程序计算。你可以直接进入下一站。</p></section>`;
+  const compact=Boolean(state.compact || ui.coachState?.open);
+  return `<section class="demo-guide demo-tour-active demo-guide-floating ${compact?'is-compact':''}" aria-label="自助导览浮层" aria-labelledby="demo-guide-title"><header class="demo-floating-header"><div><span class="eyebrow">自助体验 · ${state.index+1} / ${DEMO_TOUR_STEPS.length}</span><h2 id="demo-guide-title">${esc(compact?step.label:step.title)}</h2></div><div><button class="demo-guide-quiet" data-action="demo-tour-fold" aria-expanded="${!compact}" aria-controls="demo-floating-content">${compact?'展开讲解':'收起讲解'}</button><button class="demo-guide-quiet" data-action="demo-assistance-toggle" aria-label="关闭自助讲解">关闭</button></div></header><div class="demo-floating-content" id="demo-floating-content" ${compact?'hidden':''}><nav class="demo-tour-stops" aria-label="自助体验路线">${DEMO_TOUR_STEPS.map((s,i)=>`<button data-action="demo-tour-step" data-tour-index="${i}" class="${i===state.index?'active':''}" aria-current="${i===state.index?'step':'false'}"><span>${i+1}</span>${s.label}</button>`).join('')}</nav><p>${esc(onPage?step.description:'你正在自由查看其他页面。导览进度已保留，点击“回到这一步”即可继续。')}</p><p class="demo-guide-lesson"><span>这一站看什么</span>${esc(step.takeaway)}</p>${result}<button class="demo-guide-quiet" data-action="demo-tour-free">暂停导览，自由探索</button></div><footer class="demo-floating-actions"><div class="demo-guide-actions">${state.index>0?button('demo-tour-back','← 上一步'):''}${!compact?(onPage?button(step.action,step.actionLabel):button('demo-tour-resume','回到这一步')):''}${button('demo-tour-next',step.next,true)}</div></footer></section>`;
 }
 
 export function renderDemoLearning(view) {
@@ -34,7 +36,6 @@ export function renderDemoLearning(view) {
 }
 
 export function renderDemoGuideFooter(ui) {
-  if(!ui.demo || ui.demoTour?.mode!=='active')return '';
-  const step=demoTourStep(ui.demoTour);
-  return `<aside class="demo-guide-footer" aria-label="继续自助体验"><div><small>自助体验 · ${ui.demoTour.index+1} / ${DEMO_TOUR_STEPS.length}</small><b>${esc(step.label)}，看完了吗？</b><p>随时可以回到导览，或直接继续下一站。</p></div><div class="demo-guide-actions">${button('demo-tour-resume','回到本步导览')}${button('demo-tour-next',step.next,true)}</div></aside>`;
+  // The fixed guide owns navigation; do not duplicate it at the document bottom.
+  return '';
 }

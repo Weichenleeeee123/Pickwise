@@ -8,14 +8,15 @@ import { demoProvider, resetDemo } from '../src/ui/demo-provider.js';
 import { renderWorkspace, renderAppShell, PAGES } from '../src/ui/workspace.js';
 import { COACH_QUESTIONS } from '../src/ui/coach.js';
 
-function harness() {
+function harness(preference=null) {
   const listeners={};
+  const preferences=new Map(preference ? [['pickwise.demo-assistance',preference]] : []);
   const app={querySelectorAll:()=>[],querySelector:()=>null,addEventListener(name,fn){listeners[name]=fn;},set innerHTML(value){}};
   const api=Object.fromEntries(Object.entries(demoProvider).map(([k,fn])=>[k,fn.bind(demoProvider)]));
-  const context=vm.createContext({document:{querySelector:()=>app,getElementById:()=>null,activeElement:null,addEventListener(){},body:{append(){}},createElement:()=>({setAttribute(){}})},localStorage:{getItem:()=>null,setItem(){}},location:{search:'?demo=1',href:'http://localhost/?demo=1',pathname:'/',hash:''},history:{replaceState(){}},window:{scrollY:0,scrollTo(){},addEventListener(){}},URL,URLSearchParams,setTimeout:()=>0,clearTimeout(){},createOfficeMotion:()=>({}),mountOfficeScene:()=>()=>{},renderWorkspace:()=>'',renderAppShell:()=>'',api,setDataMode(){},ApiError:Error,createDemoTour,demoTourStep,DEMO_TOUR_STEPS,PAGES,COACH_QUESTIONS});
+  const context=vm.createContext({document:{querySelector:()=>app,getElementById:()=>null,activeElement:null,addEventListener(){},body:{append(){}},createElement:()=>({setAttribute(){}})},localStorage:{getItem:key=>preferences.get(key)??null,setItem:(key,value)=>preferences.set(key,value)},location:{search:'?demo=1',href:'http://localhost/?demo=1',pathname:'/',hash:''},history:{replaceState(){}},window:{scrollY:0,scrollTo(){},addEventListener(){}},URL,URLSearchParams,setTimeout:()=>0,clearTimeout(){},createOfficeMotion:()=>({}),mountOfficeScene:()=>()=>{},renderWorkspace:()=>'',renderAppShell:()=>'',api,setDataMode(){},ApiError:Error,createDemoTour,demoTourStep,DEMO_TOUR_STEPS,PAGES,COACH_QUESTIONS});
   const source=readFileSync(new URL('../src/ui/main.js',import.meta.url),'utf8').split('\n').filter(line=>!line.startsWith('import ')).join('\n').replace(/boot\(\);\s*$/,'');
   vm.runInContext(source+'\nglobalThis.qa={ui,handleDemoTour,enterDemo,mutate,navigate,playback:()=>officePlayback};',context);
-  return {...context.qa,listeners};
+  return {...context.qa,listeners,preferences};
 }
 
 test('demo guidance explains a visitor scenario, route and free exploration without entering live pages',()=>{
@@ -31,7 +32,8 @@ test('demo guidance explains a visitor scenario, route and free exploration with
   ui.demoTour.mode='active';ui.demoTour.index=1;ui.page='evidence';
   assert.match(renderDemoGuide(ui),/进度已保留/);
   assert.match(renderDemoGuide(ui),/回到这一步/);
-  assert.match(renderDemoGuideFooter(ui),/回到本步导览/);
+  assert.match(renderDemoGuide(ui),/demo-guide-floating/);
+  assert.equal(renderDemoGuideFooter(ui),'');
   ui.demoTour.mode='complete';
   const done=renderDemoGuide(ui);
   assert.match(done,/还可以试试/);
@@ -118,6 +120,70 @@ test('the existing office-only button bypasses the pitch while replay inside a t
   assert.equal(h.ui.demoTour.index,0);
 });
 
+test('the demo assistance switch preserves work and progress while restoring the original demo pages',async()=>{
+  const h=harness();await h.enterDemo();
+  const click=action=>h.listeners.click({target:{closest:()=>({dataset:{action}})}});
+  await h.handleDemoTour('demo-tour-start',{});
+  await h.handleDemoTour('demo-tour-step',{dataset:{tourIndex:'2'}});
+  await h.handleDemoTour('demo-tour-scenario',{});
+  const scenarioView=h.ui.view;
+  await click('demo-assistance-toggle');
+  assert.equal(h.ui.demoAssistanceEnabled,false);
+  assert.equal(h.preferences.get('pickwise.demo-assistance'),'off');
+  assert.equal(h.ui.demo,true);
+  assert.equal(h.ui.view,scenarioView);
+  assert.equal(h.ui.view.econ.postAdContribution,.7);
+  assert.equal(h.ui.demoTour.index,2);
+  assert.equal(renderDemoGuide(h.ui),'');
+  const html=renderAppShell(h.ui,renderWorkspace(h.ui),'Pickwise');
+  assert.match(html,/role="switch" aria-checked="false" aria-label="自助讲解"/);
+  assert.doesNotMatch(html,/demo-guide-floating|demo-pitch|data-action="demo-tour-resume"|产品介绍/);
+  await click('demo-pitch-open');
+  assert.equal(h.ui.demoAssistanceEnabled,false);
+  assert.equal(h.ui.demoTour.index,2);
+  await click('demo-assistance-toggle');
+  assert.equal(h.ui.demoAssistanceEnabled,true);
+  assert.equal(h.ui.demoTour.index,2);
+  assert.equal(h.ui.view.econ.postAdContribution,.7);
+  assert.match(renderDemoGuide(h.ui),/demo-guide-floating/);
+  await click('demo-assistance-toggle');
+  await click('demo-tour-restart');
+  assert.equal(h.ui.demoAssistanceEnabled,false,'the presenter preference survives next-visitor reset');
+  assert.equal(h.ui.view.econ.postAdContribution,4.7);
+  assert.match(renderWorkspace(h.ui),/data-office-scene/,'welcome state cannot hide the original demo when guidance is off');
+  const refreshed=harness('off');await refreshed.enterDemo();
+  assert.equal(refreshed.ui.demoAssistanceEnabled,false);
+  assert.match(renderWorkspace(refreshed.ui),/data-office-scene/);
+  for(const page of Object.keys(PAGES)) {
+    const state={...refreshed.ui,page};
+    const pageHtml=renderAppShell(state,renderWorkspace(state),'Pickwise');
+    assert.doesNotMatch(pageHtml,/demo-guide-floating|class="demo-pitch"|data-action="demo-pitch-|data-action="demo-tour-resume"|data-action="demo-tour-finish"/);
+  }
+  h.ui.demo=false;
+  const live=renderAppShell(h.ui,'','Pickwise');
+  assert.doesNotMatch(live,/demo-assistance-toggle|demo-guide-floating/);
+});
+
+test('the floating guide folds independently and uses a compact layout alongside the coach',async()=>{
+  const h=harness();await h.enterDemo();await h.handleDemoTour('demo-tour-start',{});
+  await h.handleDemoTour('demo-tour-fold',{});
+  assert.equal(h.ui.demoTour.compact,true);
+  let html=renderDemoGuide(h.ui);
+  assert.match(html,/is-compact/);
+  assert.match(html,/id="demo-floating-content" hidden/);
+  assert.match(html,/data-action="demo-tour-next"/);
+  await h.handleDemoTour('demo-tour-fold',{});
+  assert.equal(h.ui.demoTour.compact,false);
+  h.ui.coachState={...h.ui.coachState,open:true};
+  html=renderDemoGuide(h.ui);
+  assert.match(html,/is-compact/);
+  await h.handleDemoTour('demo-tour-fold',{});
+  assert.equal(h.ui.coachState.open,false);
+  assert.doesNotMatch(renderDemoGuide(h.ui),/id="demo-floating-content" hidden/);
+  await h.handleDemoTour('demo-tour-free',{});
+  assert.match(renderDemoGuide(h.ui),/demo-guide-floating demo-guide-paused/);
+});
+
 test('demo teaching answers, hints, retries and downloads reflect real local choices',async()=>{
   const view=resetDemo();
   let v=await demoProvider.post(view.id,'practice/N3/start');
@@ -158,7 +224,7 @@ test('demo pages keep office primary and offer working teaching controls instead
   assert.doesNotMatch(learning,/data-action="transfer-start"|data-action="gen-learning"/);
   const shell=renderAppShell(ui,learning,'Pickwise');
   assert.match(shell,/下一位体验/);
-  assert.match(shell,/继续自助体验/);
+  assert.match(shell,/自助导览浮层/);
   const room=renderWorkspace({...ui,page:'room',activeStep:'identify'});
   assert.equal((room.match(/data-office-scene/g)??[]).length,1);
   assert.ok(room.indexOf('room-office')<room.indexOf('room-controls'));

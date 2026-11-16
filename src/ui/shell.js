@@ -7,13 +7,12 @@ export function renderEntry(config, error) {
   return `<div class="entry-page"><div class="entry-art entry-art--coach" aria-hidden="true"><img src="/assets/brand/pickwise-icon.svg" alt="" width="128" height="128"></div><div class="eyebrow">Pickwise · Amazon US</div>
     <h1>选得聪明，不是选得快</h1>
     <p class="subhead">AI 选品教练，陪你分析真实商品，让你逐渐学会自己选品。</p>
-    <form id="entry-form" class="product-entry"><label for="product">你正在考虑哪个商品？</label>
-      <div class="product-entry-row"><input class="input" id="product" name="product" required maxlength="120" autocomplete="off" placeholder="输入商品名称、ASIN 或 Amazon.com 链接" /><button class="btn primary" type="${config?.preloadedDemo ? 'button' : 'submit'}" ${config?.preloadedDemo ? 'data-action="enter-demo"' : ''} ${off ? 'disabled' : ''}>${config?.preloadedDemo ? '打开演示案例' : '开始分析'}</button></div>
-      <span class="hint">提交后，教练会把分析拆成六步，边做边讲：为什么查、查到了什么、这个数怎么读。结束时给你分析报告、学习记录和一道迁移练习。</span></form>
+    <${config?.preloadedDemo ? 'div' : 'form id="entry-form"'} class="product-entry"><label for="product">你正在考虑哪个商品？</label>
+      <div class="product-entry-row"><input class="input" id="product" name="product" required maxlength="120" autocomplete="off" ${config?.preloadedDemo ? 'readonly' : ''} placeholder="${config?.preloadedDemo ? '演示使用预制案例，点击右侧开始体验' : '输入商品名称、ASIN 或 Amazon.com 链接'}" />${config?.preloadedDemo ? '' : `<button class="btn primary" type="submit" ${off ? 'disabled' : ''}>开始分析</button>`}</div>
+    </${config?.preloadedDemo ? 'div' : 'form'}>
     ${off ? `<div class="callout" role="alert"><b>模型尚未配置，现在不能开始分析。</b>请复制 <code>.env.example</code> 为 <code>.env</code>，填写 <code>LLM_BASE_URL</code>、<code>LLM_API_KEY</code>、<code>LLM_MODEL</code> 后重启服务。密钥只保存在服务端。</div>` : ''}
     ${config?.llm?.configured && !config?.apify?.configured && !config?.dataForSeo?.configured ? `<div class="callout blue"><b>实时商品数据源尚未配置。</b>配置服务端 <code>APIFY_API_TOKEN</code> 后，输入 ASIN 或关键词即可自动获取 Amazon 商品证据；也可继续导入授权数据。</div>` : ''}
     ${error ? `<div class="callout" role="alert">${esc(error)}</div>` : ''}
-    <div class="entry-actions"><button class="btn" data-action="enter-demo">体验完整演示</button><button class="btn ghost" data-action="office-preview">只看办公室回放</button><span class="hint">预制案例无需密钥，不调用模型或外部数据源。</span></div>
   </div>`;
 }
 

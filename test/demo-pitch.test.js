@@ -9,10 +9,10 @@ import { PAGES } from '../src/ui/workspace.js';
 
 test('the unattended pitch explains user, work, teaching, business and evidence without interaction',()=>{
   const html=renderDemoPitch();
-  for(const text of ['新手电商','一人','数字员工','研究没人做','数字看不懂','利润算不全','Agent 执行','五维报告','程序计算','教学','已经实现','下一步验证','¥49','¥129','待验证测试价','当前未开通收款'])assert.ok(html.includes(text),text);
-  const order=['01 / 为什么做','02 / 数字员工怎样工作','03 / 为什么叫教练','04 / 亲手体验一个判断','05 / 已经做到哪一步','06 / 如何成为一门生意'].map(x=>html.indexOf(x));
+  for(const text of ['新手','一人','数字员工','需求是否持续','自主研究','五维判断','程序计算','教学','已经实现','下一步验证','¥49','¥129','待验证测试价','当前未开通收款'])assert.ok(html.includes(text),text);
+  const order=['01 / 我们是什么','02 / 用户为什么需要','03 / Agent 承担什么工作','04 / 实际做到了什么','05 / 教学差异在哪里','06 / 方法怎样留下来','07 / 商业模式怎样成立','08 / 下一步验证什么'].map(x=>html.indexOf(x));
   assert.ok(order.every(x=>x>=0));assert.deepEqual([...order].sort((a,b)=>a-b),order);
-  assert.match(html,/data-action="demo-tour-start"/);
+  assert.equal((html.match(/data-action="demo-tour-start"/g)??[]).length,2);
   assert.match(html,/href="https:\/\/pickwise.icu\/materials\/pitch-preview.pdf"/);
   assert.doesNotMatch(html,/<form|data-action="purchase"|稳赚|已有.*付费客户/);
 });
@@ -24,7 +24,7 @@ test('product introduction has its own presentation and always links back to sel
   const html=renderAppShell(ui,body,'Pickwise');
   assert.match(html,/Pickwise · AI 选品教练/);
   assert.match(html,/产品介绍/);
-  assert.match(html,/给新手电商/);
+  assert.match(html,/新手主理人/);
   assert.equal((html.match(/id="demo-pitch-title"/g)??[]).length,1);
   assert.equal((html.match(/data-question-key=/g)??[]).length,3);
   assert.match(html,/一句话介绍 Pickwise/);

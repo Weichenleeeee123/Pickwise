@@ -29,7 +29,7 @@ export function renderCoach(view, state = {}) {
 }
 
 export function renderCoachDrawer(ui) {
-  const st = {...ui.coachState,pitch:Boolean(ui.demo&&ui.demoTour?.mode==='welcome')};
+  const st = {...ui.coachState,pitch:Boolean(ui.demo&&ui.demoAssistanceEnabled!==false&&ui.demoTour?.mode==='welcome')};
   return `<div class="coach-widget"><button id="coach-capture" class="coach-selection-action" data-action="coach-use-selection" ${st.selection ? '' : 'hidden'}>引用选文问教练 ↗</button><button id="coach-launcher" class="coach-launcher" data-action="coach-open" aria-controls="coach-sidebar" aria-expanded="${Boolean(st.open)}" aria-label="打开 AI 教练"><span class="coach-launcher-label">有疑问，问问我</span><img src="/assets/brand/pickwise-icon.svg" alt="纸箱小教练" width="66" height="66"><span class="coach-launcher-spark" aria-hidden="true">✦</span></button>${st.open ? `<aside id="coach-sidebar" class="coach-sidebar" role="dialog" aria-modal="false" aria-labelledby="coach-title">${renderCoach(ui.view,st)}</aside>` : ''}</div>`;
 }
 

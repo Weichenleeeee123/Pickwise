@@ -10,7 +10,7 @@ import { PITCH_QUESTIONS } from './demo-pitch.js';
 const app = document.querySelector('#app');
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* 无痕模式下忽略 */ } } };
 
-const ui = { config: null, list: [], view: null, error: null, open: new Set(), tab: 'analysis', texts: {}, draft: { choice: null, reason: '' }, pollTimer: null, seq: 0, busy: false, focus: null, sessionKey: store.get('pickwise.active'), page: 'home', demo: false, historyOpen: false, collapsed: store.get('pickwise.nav-collapsed') === '1', activeStep: 'identify', pageInputs: {}, details: {}, currencyDraft: null };
+const ui = { config: null, list: [], view: null, error: null, open: new Set(), tab: 'analysis', texts: {}, draft: { choice: null, reason: '' }, pollTimer: null, seq: 0, busy: false, focus: null, sessionKey: store.get('pickwise.active'), page: 'home', demo: false, demoAssistanceEnabled:store.get('pickwise.demo-assistance')!=='off', historyOpen: false, collapsed: store.get('pickwise.nav-collapsed') === '1', activeStep: 'identify', pageInputs: {}, details: {}, currencyDraft: null };
 
 function coachState() {
   const context = (ui.demo ? 'demo' : 'live') + ':' + (ui.view?.id ?? 'none');
@@ -86,16 +86,23 @@ async function visitDemoTour(index) {
   const previous=demoTourStep(ui.demoTour);
   const nextIndex=Math.min(DEMO_TOUR_STEPS.length-1,Math.max(0,Number(index)||0));
   if(previous.id==='economics' && nextIndex>ui.demoTour.index)await applyDemoScenario('baseline');
-  Object.assign(ui.demoTour,{mode:'active',index:nextIndex});
+  Object.assign(ui.demoTour,{mode:'active',index:nextIndex,compact:false});
   coachState().open=false;
   navigate(DEMO_TOUR_STEPS[nextIndex].page);
 }
 async function handleDemoTour(action,target) {
   if(!ui.demo || !action?.startsWith('demo-tour-'))return false;
+  if(action==='demo-tour-restart'){await enterDemo();return true;}
+  if(ui.demoAssistanceEnabled===false)return false;
   if(!ui.demoTour)ui.demoTour=createDemoTour();
   const state=ui.demoTour;
   if(action==='demo-tour-start') {await visitDemoTour(0);officePlayback={elapsed:0,paused:false,speed:1};render();app.querySelector('.analysis-team')?.scrollIntoView({block:'start'});}
   else if(action==='demo-tour-restart')await enterDemo();
+  else if(action==='demo-tour-fold'){
+    if(coachState().open){coachState().open=false;state.compact=false;}
+    else state.compact=!state.compact;
+    render();
+  }
   else if(action==='demo-tour-free'){state.mode='free';officePlayback=null;render();}
   else if(action==='demo-tour-resume')await visitDemoTour(state.index);
   else if(action==='demo-tour-step')await visitDemoTour(target.dataset.tourIndex);
@@ -354,17 +361,31 @@ app.addEventListener('click', async (event) => {
   if (!target || target.disabled) return;
   if (target.dataset.page) { navigate(target.dataset.page); return; }
   if (target.dataset.stepSelect) { ui.activeStep = target.dataset.stepSelect; ui.focus = ui.activeStep; ui.open = new Set([ui.activeStep]); render(); app.querySelector('.room-step-detail')?.scrollIntoView({ block: 'start' }); return; }
-  if (target.dataset.open) { openSession(target.dataset.open); return; }
+  if (target.dataset.open) { if (ui.demo) await enterDemo({ replay: true }); else openSession(target.dataset.open); return; }
   if (target.dataset.toggle) { const id = target.dataset.toggle; ui.open.has(id) ? ui.open.delete(id) : ui.open.add(id); render(); return; }
   if (target.dataset.tab) { ui.tab = target.dataset.tab; render(); loadText(ui.tab); return; }
   const action = target.dataset.action;
-  if(action==='demo-pitch-open') {
+  if(action==='demo-assistance-toggle'){
     if(!ui.demo)return;
+    const wasPitch=ui.demoTour?.mode==='welcome';
+    ui.demoAssistanceEnabled=ui.demoAssistanceEnabled===false;
+    store.set('pickwise.demo-assistance',ui.demoAssistanceEnabled?'on':'off');
+    if(!ui.demoAssistanceEnabled)officePlayback=null;
+    render();
+    if(wasPitch)window.scrollTo(0,0);
+    return;
+  }
+  if(action==='demo-pitch-open') {
+    if(!ui.demo || ui.demoAssistanceEnabled===false)return;
     ui.demoTour??=createDemoTour();ui.demoTour.mode='welcome';officePlayback=null;coachState().open=false;render();window.scrollTo(0,0);
     return;
   }
-  if(action==='demo-pitch-story'){if(ui.demo)app.querySelector('#pitch-story')?.scrollIntoView({block:'start'});return;}
-  if(action==='demo-pitch-coach'){if(ui.demo)openCoach();return;}
+  if(action==='demo-pitch-story'){if(ui.demo&&ui.demoAssistanceEnabled!==false)app.querySelector('#pitch-story')?.scrollIntoView({block:'start'});return;}
+  if(action==='demo-pitch-calculation'){
+    if(!ui.demo||ui.demoAssistanceEnabled===false)return;
+    ui.pitchLowCvr=target.dataset.scenario==='low';render();return;
+  }
+  if(action==='demo-pitch-coach'){if(ui.demo&&ui.demoAssistanceEnabled!==false)openCoach();return;}
   if(await handleDemoTour(action,target))return;
   if (action === 'coach-open') { captureCoachSelection(); openCoach(); return; }
   if (action === 'coach-close') { coachState().open = false; render(); document.getElementById('coach-launcher')?.focus({preventScroll:true}); return; }
@@ -374,10 +395,10 @@ app.addEventListener('click', async (event) => {
     openCoach(selected); return;
   }
   if (action === 'coach-clear-quote') { coachState().quote = ''; render(); return; }
-  if (action === 'coach-suggest') { const preset = (ui.demo?[...COACH_QUESTIONS,...PITCH_QUESTIONS]:COACH_QUESTIONS).find(q => q.key === target.dataset.questionKey); if (preset) sendCoach(preset.question); return; }
+  if (action === 'coach-suggest') { const preset = (ui.demo&&ui.demoAssistanceEnabled!==false?[...COACH_QUESTIONS,...PITCH_QUESTIONS]:COACH_QUESTIONS).find(q => q.key === target.dataset.questionKey); if (preset) sendCoach(preset.question); return; }
   if (action === 'coach-ask') { sendCoach(); return; }
   const node = target.dataset.node;
-  if (action === 'enter-demo' || action === 'reset-demo') { await enterDemo(); return; }
+  if (action === 'enter-demo' || action === 'reset-demo') { await enterDemo({ replay: ui.page === 'home' || action === 'reset-demo' }); return; }
   if (action === 'exit-demo') { await exitDemo(); return; }
   if (action === 'history') { await loadList(); ui.historyOpen = !ui.historyOpen; render(); return; }
   if (action === 'collapse-nav') { ui.collapsed = !ui.collapsed; store.set('pickwise.nav-collapsed', ui.collapsed ? '1' : '0'); render(); return; }
@@ -386,7 +407,7 @@ app.addEventListener('click', async (event) => {
   if (action === 'office-speed' && officePlayback) { officePlayback.speed = officePlayback.speed === 1 ? 2 : officePlayback.speed === 2 ? .5 : 1; target.textContent = `${officePlayback.speed}×`; return; }
   if (action === 'office-exit') { officePlayback = null; syncLocation(); render(); schedulePoll(); return; }
   if (action === 'home') { navigate('home'); return; }
-  if (action === 'demo') { await enterDemo(); return; }
+  if (action === 'demo') { await enterDemo({ replay: ui.page === 'home' }); return; }
   if (!ui.view) return;
   if (action === 'retry') return mutate('research', { mode: 'resume' });
   if (action === 'rerun') return mutate('research', { mode: 'fresh' });
@@ -498,7 +519,7 @@ function syncLocation() {
 }
 function navigate(page) {
   if (!PAGES[page]) return;
-  if(ui.demo&&ui.demoTour?.mode==='welcome')ui.demoTour.mode='free';
+  if(ui.demo&&ui.demoAssistanceEnabled!==false&&ui.demoTour?.mode==='welcome')ui.demoTour.mode='free';
   ui.pageInputs[ui.page] = readInputs();
   ui.page = page;
   ui.historyOpen = false;
@@ -509,13 +530,19 @@ function navigate(page) {
   syncLocation(); render(); window.scrollTo(0, 0); schedulePoll();
   if (ui.view?.analysis && ['report', 'learning'].includes(page)) loadText(ui.tab);
 }
-async function enterDemo() {
+async function enterDemo({ replay = false } = {}) {
+  ui.pitchLowCvr=false;
   ui.demoTour=createDemoTour();
   ui.coachState = null;
   clearTimeout(ui.pollTimer); ++ui.seq;
   if (!ui.demo) liveWorkspace = { view: ui.view, list: ui.list, config: ui.config, page: ui.page, tab: ui.tab, texts: ui.texts, draft: ui.draft, open: ui.open, focus: ui.focus, pageInputs: { ...ui.pageInputs, [ui.page]: readInputs() }, details: ui.details, activeStep: ui.activeStep, currencyDraft: ui.currencyDraft };
   renderedContext = null; setDataMode('demo'); ui.demo = true; ui.busy = false; ui.view = await api.demo(); ui.config = await api.config();
   ui.currencyDraft = null; ui.page = 'room'; ui.tab = 'analysis'; ui.activeStep = 'identify'; ui.focus = null; ui.historyOpen = false; ui.error = null; ui.open = new Set(); ui.pageInputs = {}; ui.details = {}; ui.draft = { choice: null, reason: '' }; ui.texts = {}; officePlayback = null;
+  // Case data is precomputed; replay its process on entry instead of showing its finished state.
+  if (replay || ui.demoAssistanceEnabled === false) {
+    ui.demoTour.mode = ui.demoAssistanceEnabled === false ? 'free' : 'active';
+    officePlayback = { elapsed: 0, paused: false, speed: 1 };
+  }
   await loadList(); syncLocation(); render(); window.scrollTo(0, 0); loadText(ui.tab);
 }
 async function exitDemo() {
