@@ -54,7 +54,7 @@ export function createAutoPitch({ enter, cue, progress, change, finish }) {
     audio=new Audio();audio.preload='auto';
     audio.addEventListener('timeupdate',tick);
     audio.addEventListener('ended',() => {if(!state.active)return;tick();ended=true;next();});
-    audio.addEventListener('error',() => fail(generation,'语音暂时无法加载，请检查网络后重试。'));
+    audio.addEventListener('error',() => fail(generation,'语音加载失败，请点击“继续播放”重新加载本段。'));
   }
   async function playScene(index, unlock=false) {
     const token=++generation;
@@ -82,6 +82,9 @@ export function createAutoPitch({ enter, cue, progress, change, finish }) {
     async toggle() {
       if(!state.active)return;
       if(state.paused) {
+        // A failed media resource stays failed: play() alone cannot reload a 404
+        // or retry a scene that did not finish preparing. Rebuild both together.
+        if(state.error || audio.error)return playScene(state.index,true);
         state.paused=false;state.error='';emit();
         if(ended)await next();
         else {try {await audio.play();}catch {fail(generation,'点击“继续播放”开启语音。');}}
