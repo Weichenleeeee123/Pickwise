@@ -16,8 +16,8 @@ import { isSessionId } from './store.js';
 import { parseOperatingFile, applyOperatingImport, LAUNCH_FIELDS } from './operating-import.js';
 import { collectSnapshot } from './monitoring.js';
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp' };
-const STATIC = /^\/(?:src\/(?:ui\/)?[\w-]+\.js|src\/[\w-]+\.js|assets\/brand\/(?:pickwise-icon|pickwise-icon-small|pickwise-icon-32)\.(?:svg|png)|assets\/team\/(?:identify|demand|competition|profit|risk|summary|office|chair|desk|roundtable|office-computers-v4|chair-computer-v4|(?:identify|demand|competition|profit|risk|summary)-computer-v4|chair-empty-v6|(?:identify|demand|competition|profit|risk|summary)-occupied-v6|(?:identify|demand|competition|profit|risk|summary)-(?:standing-v7|walking-four-v11))\.webp|styles\.css|index\.html)?$/;
+const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.mp3': 'audio/mpeg' };
+const STATIC = /^\/(?:src\/(?:ui\/)?[\w-]+\.js|src\/[\w-]+\.js|assets\/demo\/narration\/v(?:1|3)-(?:opening|need|office|competition|evidence|economics|sensitivity|coach|practice|business|closing)\.mp3|assets\/brand\/(?:pickwise-icon|pickwise-icon-small|pickwise-icon-32)\.(?:svg|png)|assets\/team\/(?:identify|demand|competition|profit|risk|summary|office|chair|desk|roundtable|office-computers-v4|chair-computer-v4|(?:identify|demand|competition|profit|risk|summary)-computer-v4|chair-empty-v6|(?:identify|demand|competition|profit|risk|summary)-occupied-v6|(?:identify|demand|competition|profit|risk|summary)-(?:standing-v7|walking-four-v11))\.webp|styles\.css|index\.html)?$/;
 const CURRENCIES = ['USD', 'CNY', 'EUR'];
 
 class HttpError extends Error {

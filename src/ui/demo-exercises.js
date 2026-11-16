@@ -24,13 +24,14 @@ export function demoPractice(current, node, action, body = {}) {
   if(action!=='answer') throw new Error('这项演示练习操作暂不可用。');
   const choice=question.options.find(o=>o.id===body.choice);
   if(!choice) throw new Error('请选择一个答案。');
-  record.status='done'; record.answer={choice:choice.id,correct:choice.id===question.correct};
+  record.status='done'; record.demonstration=body.demonstration===true;
+  record.answer={choice:choice.id,correct:choice.id===question.correct};
   record.feedback={feedback:choice.why,method_reminder:node==='N3'?'广告获客成本 = CPC ÷ CVR；广告后贡献 = 广告前贡献 − 获客成本。':'同商品、同口径的连续历史可观察过去；估算不是订单，过去不保证未来。'};
 }
 
 export function demoLearningText(current) {
   return '# 本次演示的学习回顾\n\n本次为本地模拟练习，只记录你的选择，不构成学习能力认证。\n\n'+['N2','N3'].map(node=>{
     const r=current.practice[node];
-    return '## '+(node==='N2'?'需求历史怎么读':'广告怎样影响利润')+'\n\n'+(!r?'尚未尝试。':r.status==='skipped'?'已跳过，理解未验证。':r.status==='done'?(r.answer.correct?'本题回答正确。':'本题需要回看方法。')+'\n\n'+r.feedback.feedback+'\n\n可迁移规则：'+r.feedback.method_reminder:'小题已打开，尚未作答。');
+    return '## '+(node==='N2'?'需求历史怎么读':'广告怎样影响利润')+'\n\n'+(!r?'尚未尝试。':r.status==='skipped'?'已跳过，理解未验证。':r.status==='done'?(r.demonstration?'自动作答示范，不计为访客作答。':r.answer.correct?'本题回答正确。':'本题需要回看方法。')+'\n\n'+r.feedback.feedback+'\n\n可迁移规则：'+r.feedback.method_reminder:'小题已打开，尚未作答。');
   }).join('\n\n')+'\n\n下一次选品：先对齐来源口径，再列全成本，最后保留风险与资金边界。\n';
 }

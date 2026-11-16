@@ -1,5 +1,6 @@
 import { renderDemoPitch } from './demo-pitch.js';
 import { esc } from './common.js';
+import { renderAutoPitch } from './auto-pitch.js';
 
 export const DEMO_TOUR_STEPS = [
   { id:'office', page:'room', label:'团队协作', title:'先看一位数字员工，怎样分工做研究', description:'六位角色分别识别商品、查需求、比竞品、算利润、核风险，再汇总判断。办公室是过程的可视化；每一步下方都能查看具体发现。', action:'demo-tour-replay', actionLabel:'播放 42 秒协作过程', next:'去看分析结论 →', takeaway:'你只给一个候选商品，系统负责拆任务、找依据，再把判断交还给你。' },
@@ -18,8 +19,9 @@ const button = (action,label,primary=false) => `<button class="btn ${primary?'pr
 export function renderDemoGuide(ui) {
   if (!demoAssistanceEnabled(ui) || !ui.view?.preloadedDemo) return '';
   const state=ui.demoTour ?? createDemoTour(), step=demoTourStep(state);
+  if(ui.autoPitch?.active) return renderAutoPitch(ui.autoPitch,ui.view)+(state.mode==='welcome'?renderDemoPitch({lowCvr:Boolean(ui.pitchLowCvr)}):'');
   if(state.mode==='free') return `<aside class="demo-guide-minimal demo-guide-floating demo-guide-paused" aria-label="自助导览浮层"><span>自由探索中 · 导览进度已保留</span><div>${button('demo-tour-resume','继续自助导览 ↗')}${button('demo-assistance-toggle','关闭自助讲解')}</div></aside>`;
-  if(state.mode==='complete') return `<section class="demo-guide demo-tour-finish" aria-labelledby="demo-guide-title"><div class="demo-guide-voice">${mascot}<div><span class="eyebrow">体验回顾 / TAKE THE METHOD WITH YOU</span><h2 id="demo-guide-title">从一个商品，到有依据的经营判断。</h2><p>你刚才看到的，是选品数字员工与嵌入式教学的一条完整路径。研究过程、原始证据、经营测算和随时可问的教练，围绕同一个商品工作。</p></div></div><div class="demo-tour-recap">${[['evidence','核对原始数据','可追溯的商品研究'],['scenario','尝试参数变化','理解利润成立的条件'],['coach','与箱子教练对话','围绕现场证据继续追问'],['practice','亲自做一道题','把方法带到下一次选品']].map(([key,title,note])=>`<div><span class="${state[key]?'is-done':''}">${state[key]?'✓':'○'}</span><b>${title}</b><small>${state[key]?'已体验':'还可以试试'} · ${note}</small></div>`).join('')}</div><p class="demo-guide-boundary">本次为完整虚构案例；实时模式使用实际来源和模型分析，数据不足时保留缺口，费用与预算需要按实际经营条件填写。</p><div class="demo-guide-actions">${button('demo-pitch-open','再看产品介绍',true)}${button('demo-tour-restart','下一位体验 / 从头开始')}${button('demo-tour-free','继续自由探索')}${button('demo-tour-download','下载这份案例报告')}</div></section>`;
+  if(state.mode==='complete') return `<section class="demo-guide demo-tour-finish" aria-labelledby="demo-guide-title"><div class="demo-guide-voice">${mascot}<div><span class="eyebrow">体验回顾 / TAKE THE METHOD WITH YOU</span><h2 id="demo-guide-title">${state.automatic?'五分钟讲解完成，欢迎自由体验。':'从一个商品，到有依据的经营判断。'}</h2><p>你刚才看到的，是选品数字员工与嵌入式教学的一条完整路径。研究过程、原始证据、经营测算和随时可问的教练，围绕同一个商品工作。</p></div></div><div class="demo-tour-recap">${[['evidence','核对原始数据','可追溯的商品研究'],['scenario','尝试参数变化','理解利润成立的条件'],['coach','与箱子教练对话','围绕现场证据继续追问'],['practice','亲自做一道题','把方法带到下一次选品']].map(([key,title,note])=>`<div><span class="${state[key]?'is-done':''}">${state[key]?'✓':'○'}</span><b>${title}</b><small>${key==='practice'&&state.practiceDemo?'已观看自动作答示范':state[key]?'已体验':'还可以试试'} · ${note}</small></div>`).join('')}</div><p class="demo-guide-boundary">本次为完整虚构案例；实时模式使用实际来源和模型分析，数据不足时保留缺口，费用与预算需要按实际经营条件填写。</p><div class="demo-guide-actions">${button('demo-pitch-open','再看产品介绍',true)}${button('demo-tour-restart','下一位体验 / 从头开始')}${button('demo-tour-free','继续自由探索')}${button('demo-tour-download','下载这份案例报告')}</div></section>`;
   if(state.mode==='welcome') return renderDemoPitch({lowCvr:Boolean(ui.pitchLowCvr)});
   const onPage=ui.page===step.page;
   let result='';
