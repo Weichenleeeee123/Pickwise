@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+data/
+.playwright-cli/
+*.tmp
+__pycache__/
+
+# Local generated deliverables, browser evidence, archives, and temporary tools.
+/output/
+/tmp/
+/.chart-data-*/

@@ -1,0 +1,23 @@
+{
+  "source": "output\\imagegen\\pickwise-walk-v10\\profit-four-directions.png",
+  "source_sha256": "9186a083739a72bdad11666a904ce7f9fdceab968821dc54f925c95963d138db",
+  "directions": [
+    "south",
+    "west",
+    "east",
+    "north"
+  ],
+  "frames_per_direction": 4,
+  "row_bounds": [
+    0,
+    252,
+    504,
+    760,
+    1024
+  ],
+  "size": [
+    1024,
+    1024
+  ],
+  "sha256": "1d8af9a01e3c0212bcf66b9509bf84b80e51cf4f9c40df75415515f704f8ab8b"
+}

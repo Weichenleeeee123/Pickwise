@@ -1,0 +1,23 @@
+{
+  "source": "output\\imagegen\\pickwise-walk-v10\\identify-four-directions.png",
+  "source_sha256": "ad0717fd3635db5ce61681e58b5de7695673aa5d1b2519c4331e81a11c1b9d01",
+  "directions": [
+    "south",
+    "west",
+    "east",
+    "north"
+  ],
+  "frames_per_direction": 4,
+  "row_bounds": [
+    0,
+    254,
+    506,
+    760,
+    1024
+  ],
+  "size": [
+    1024,
+    1024
+  ],
+  "sha256": "d4ed9212154d262d28e5490f573f60957ba6928c6a82f5b2317f898f97c9efb9"
+}

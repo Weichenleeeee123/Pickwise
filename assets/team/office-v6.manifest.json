@@ -1,0 +1,53 @@
+{
+  "model": "gpt-image-2.6",
+  "provider": "OpenAI Next (user-selected)",
+  "date": "2026-11-15",
+  "source_sha256": {
+    "office-computers-v4.png": "fcaf37b61ded86728b1ac1a64e69b579af09cfcb84e77ed30421930ef7456a18",
+    "empty-chair-reference.png": "b11bb4bd18633db6fd91507e181ce01577e81e186fb71d026f488b529f8c3bf1",
+    "occupied-chair-atlas.png": "9f97986063b0feaa40f171272286e707a21ad554479285e84704c9a16d07f3e0"
+  },
+  "row_bounds": [
+    0,
+    255,
+    487,
+    732,
+    980,
+    1235,
+    1536
+  ],
+  "assets": {
+    "identify-occupied-v6.webp": {
+      "bytes": 66888,
+      "sha256": "3cbe92067378ee47c61f3ef928a739d7dc4294d6fb4ddcda318469403bcb0934"
+    },
+    "demand-occupied-v6.webp": {
+      "bytes": 69004,
+      "sha256": "d0440089b5b0b33ec6a10deda9e0524394d11ab89b3e8688ed79276e6c8e8e49"
+    },
+    "competition-occupied-v6.webp": {
+      "bytes": 67106,
+      "sha256": "b9feeee53780c0449023464b4c30d8f433e5a1dddd2e23373d7f26e9dd831896"
+    },
+    "profit-occupied-v6.webp": {
+      "bytes": 63886,
+      "sha256": "8cc4bd6311538260f3ff3340dd6895bda1fa6228459f1a4c2337ceff5d369183"
+    },
+    "risk-occupied-v6.webp": {
+      "bytes": 62672,
+      "sha256": "07443f019ec3492e3b093224fdc4b3919746483cd19e1d814646a7304abc54d4"
+    },
+    "summary-occupied-v6.webp": {
+      "bytes": 65166,
+      "sha256": "e677d938c8bb0ad3933cae71a4a86312fa50a147f5a94b298b4a7e766c9a1e7a"
+    },
+    "chair-empty-v6.webp": {
+      "bytes": 9718,
+      "sha256": "011ed4681653c963d0f2c8edf8c4ac74c442491465afd6bf56779ed28a57e16b"
+    },
+    "office-computers-v4.webp": {
+      "bytes": 245756,
+      "sha256": "28d04459b172c0ecac2353918102a7742e67b0f012c940813366e35a7d972bc2"
+    }
+  }
+}

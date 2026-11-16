@@ -1,0 +1,23 @@
+{
+  "source": "output\\imagegen\\pickwise-walk-v10\\competition-four-directions.png",
+  "source_sha256": "658fed84146ae3f518ddf151917bef09782a0e29a7fd18370b448059b7023626",
+  "directions": [
+    "south",
+    "west",
+    "east",
+    "north"
+  ],
+  "frames_per_direction": 4,
+  "row_bounds": [
+    0,
+    249,
+    506,
+    761,
+    1024
+  ],
+  "size": [
+    1024,
+    1024
+  ],
+  "sha256": "f56c94e04d51f5e54284ee30900d567ff256390317f6e00d9d2da0205bd0134e"
+}

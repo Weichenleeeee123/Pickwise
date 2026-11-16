@@ -1,0 +1,23 @@
+{
+  "source": "output\\imagegen\\pickwise-walk-v10\\demand-four-directions.png",
+  "source_sha256": "211e7434456dc1011c9ad1aceafce2a4729a5d550196ac7d55a886afd63f9ff6",
+  "directions": [
+    "south",
+    "west",
+    "east",
+    "north"
+  ],
+  "frames_per_direction": 4,
+  "row_bounds": [
+    0,
+    252,
+    505,
+    760,
+    1024
+  ],
+  "size": [
+    1024,
+    1024
+  ],
+  "sha256": "7246656594cc035ce95a09d9bdcbbcefcc77054faec2eb660363c219b13afe20"
+}

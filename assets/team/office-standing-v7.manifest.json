@@ -1,0 +1,49 @@
+{
+  "model": "gpt-image-2.6",
+  "provider": "OpenAI Next (user-selected)",
+  "date": "2026-11-15",
+  "source_sha256": "d9fd6e5a8b3bb9ee491c611e7b3c524aa3b15d3edd2ae3b0cb28bb67c5575325",
+  "row_bounds": [
+    0,
+    254,
+    481,
+    728,
+    972,
+    1240,
+    1536
+  ],
+  "directions": [
+    "east",
+    "south",
+    "west",
+    "northeast",
+    "north",
+    "northwest"
+  ],
+  "assets": {
+    "identify-standing-v7.webp": {
+      "bytes": 53568,
+      "sha256": "8cb49e7ce7379230faafdb8dbe391402f04c78a265015a866744b9cca3d6836c"
+    },
+    "demand-standing-v7.webp": {
+      "bytes": 56276,
+      "sha256": "c8d953466bef02eb9f5e4fc8c7cd093fd93b11c22ffac940de4d9fa1e68e19f7"
+    },
+    "competition-standing-v7.webp": {
+      "bytes": 53216,
+      "sha256": "945eb72ffd4751b857cd4e368d6f1601677de0532cea4996b68ed67f23ac1d57"
+    },
+    "profit-standing-v7.webp": {
+      "bytes": 52730,
+      "sha256": "2654711d55778a41da100604994dce61ef0103fd567d06f10e568b3d8817127a"
+    },
+    "risk-standing-v7.webp": {
+      "bytes": 53424,
+      "sha256": "2fef473daf8c822c6eacb53f3189b6ad2870a3a2048fa5dc7ffff87dd30c5337"
+    },
+    "summary-standing-v7.webp": {
+      "bytes": 58952,
+      "sha256": "ae7b107b5a38d8e036972ce190ca24b12d317cfc268b47bac9f2bc4dba9741ff"
+    }
+  }
+}

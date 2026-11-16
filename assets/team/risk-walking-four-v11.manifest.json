@@ -1,0 +1,23 @@
+{
+  "source": "output\\imagegen\\pickwise-walk-v10\\risk-four-directions.png",
+  "source_sha256": "0bc2d4b587f73c31e9957250af0c458a920a64a9f7f22dfd1c6caa2a5efef898",
+  "directions": [
+    "south",
+    "west",
+    "east",
+    "north"
+  ],
+  "frames_per_direction": 4,
+  "row_bounds": [
+    0,
+    253,
+    508,
+    760,
+    1024
+  ],
+  "size": [
+    1024,
+    1024
+  ],
+  "sha256": "8bd62228506a9cf725e7435f95710fbde099fa34dfdf7cacb85f9808f270a208"
+}
